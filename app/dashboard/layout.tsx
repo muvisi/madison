@@ -2,13 +2,35 @@
 
 import Sidebar from "../../src/components/Sidebar";
 import Topbar from "../../src/components/Topbar";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type DashboardLayoutProps = {
   children: ReactNode;
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  // ---------- Auth Guard ----------
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.replace("/"); // Redirect if not authenticated
+    } else {
+      setLoading(false);
+    }
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-blue-600 text-lg font-semibold">Checking authentication...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-gray-100 overflow-hidden">
       {/* Background triangles */}

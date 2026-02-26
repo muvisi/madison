@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import InputField from "../src/components/InputField";
 import Button from "../src/components/Button";
 import Logo from "../src/components/Logo";
-import { login } from "../src/services/auth";
 
 type Triangle = {
   x: number;
@@ -22,32 +21,65 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  // ---------- Login Handler ----------
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(username, password)) {
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/account/login/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+      setLoading(false);
+
+      if (!res.ok) {
+        setError(data.detail || "Invalid username or password");
+        return;
+      }
+
+      // Save tokens to localStorage
+      localStorage.setItem("accessToken", data.access);
+      localStorage.setItem("refreshToken", data.refresh);
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("uuid", data.uuid);
+
+      // Redirect to dashboard
       router.push("/dashboard");
-    } else {
-      setError("Invalid username or password");
+    } catch (err) {
+      setLoading(false);
+      setError("Something went wrong. Please try again.");
+      console.error(err);
     }
   };
 
+  // ---------- Triangle Canvas ----------
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let width = canvas.width = window.innerWidth;
-    let height = canvas.height = window.innerHeight;
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
 
     const triangles: Triangle[] = Array.from({ length: 50 }).map(() => ({
       x: Math.random() * width,
       y: Math.random() * height,
       size: 10 + Math.random() * 30,
-      vx: (Math.random() - 0.5) * 2, // random speed
+      vx: (Math.random() - 0.5) * 2,
       vy: (Math.random() - 0.5) * 2,
-      color: `rgba(${Math.floor(150 + Math.random() * 100)}, ${Math.floor(100 + Math.random() * 150)}, ${Math.floor(150 + Math.random() * 100)}, 0.3)`,
+      color: `rgba(${Math.floor(150 + Math.random() * 100)}, ${Math.floor(
+        100 + Math.random() * 150
+      )}, ${Math.floor(150 + Math.random() * 100)}, 0.3)`,
     }));
 
     const drawTriangle = (t: Triangle) => {
@@ -62,24 +94,20 @@ export default function LoginPage() {
 
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
-
       for (let i = 0; i < triangles.length; i++) {
         const t = triangles[i];
         t.x += t.vx;
         t.y += t.vy;
 
-        // bounce off edges
         if (t.x < 0 || t.x > width) t.vx *= -1;
         if (t.y < 0 || t.y > height) t.vy *= -1;
 
-        // simple collision detection and bounce
         for (let j = i + 1; j < triangles.length; j++) {
           const t2 = triangles[j];
           const dx = t.x - t2.x;
           const dy = t.y - t2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < (t.size + t2.size) / 2) {
-            // swap velocities for a simple bounce
             [t.vx, t2.vx] = [t2.vx, t.vx];
             [t.vy, t2.vy] = [t2.vy, t.vy];
           }
@@ -87,7 +115,6 @@ export default function LoginPage() {
 
         drawTriangle(t);
       }
-
       requestAnimationFrame(animate);
     };
 
@@ -103,23 +130,19 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-50 overflow-hidden p-4">
-      {/* Canvas for 3D-like animated triangles */}
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 w-full h-full z-0"
       />
 
-      {/* Login card */}
       <div className="relative z-10 bg-white shadow-lg rounded-xl w-full max-w-md p-8 sm:p-12">
         <Logo />
         <h2 className="text-xl font-semibold text-gray-700 mb-6 text-center">
-          Welcome Back
+          Healthcare is Fun
         </h2>
 
         {error && (
-          <p className="bg-red-100 text-red-700 px-4 py-2 mb-4 rounded">
-            {error}
-          </p>
+          <p className="bg-red-100 text-red-700 px-4 py-2 mb-4 rounded">{error}</p>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -134,7 +157,11 @@ export default function LoginPage() {
             value={password}
             onChange={setPassword}
           />
-          <Button type="submit" text="Login" />
+          <Button
+            type="submit"
+            text={loading ? "Logging in..." : "Login"}
+            disabled={loading}
+          />
         </form>
 
         <p className="text-sm text-gray-500 mt-6 text-center">

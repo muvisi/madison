@@ -11,6 +11,7 @@ const navItems = [
   { name: "Copays", path: "/dashboard/copays" },
   { name: "Waiting Periods", path: "/dashboard/waiting-periods" },
   { name: "Restrictions", path: "/dashboard/restrictions" },
+  { name: "Users", path: "/dashboard/users" }, // ✅ Added Users page
 ];
 
 export default function Sidebar() {

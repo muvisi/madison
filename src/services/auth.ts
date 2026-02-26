@@ -1,30 +1,44 @@
 "use client";
 
-// Demo: replace this with API calls later
-const DEMO_USER = {
-  username: "admin",
-  password: "password",
-};
+// ---------- Login ----------
+export const login = async (username: string, password: string) => {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/account/login/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
 
-export const login = (username: string, password: string): boolean => {
-  // For now, simple hardcoded check
-  if (username === DEMO_USER.username && password === DEMO_USER.password) {
-    localStorage.setItem("loggedIn", "true");
-    localStorage.setItem("username", username);
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.detail || "Invalid credentials");
+
+    // Save tokens and user info
+    localStorage.setItem("accessToken", data.access);
+    localStorage.setItem("refreshToken", data.refresh);
+    localStorage.setItem("username", data.username);
+    localStorage.setItem("uuid", data.uuid);
+
     return true;
+  } catch (err) {
+    console.error(err);
+    return false;
   }
-  return false;
 };
 
+// ---------- Logout ----------
 export const logout = (): void => {
-  localStorage.removeItem("loggedIn");
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
   localStorage.removeItem("username");
+  localStorage.removeItem("uuid");
 };
 
-export const isLoggedIn = (): boolean => {
-  return localStorage.getItem("loggedIn") === "true";
-};
+// ---------- Auth helpers ----------
+export const isLoggedIn = (): boolean => !!localStorage.getItem("accessToken");
 
-export const getCurrentUser = (): string | null => {
-  return localStorage.getItem("username");
-};
+export const getCurrentUser = (): string | null => localStorage.getItem("username");
+
+export const getAccessToken = (): string | null => localStorage.getItem("accessToken");
+
+export const getRefreshToken = (): string | null => localStorage.getItem("refreshToken");
