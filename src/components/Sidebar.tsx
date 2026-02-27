@@ -35,8 +35,8 @@ const navItems = [
     name: "Waiting Periods",
     path: "/dashboard/waiting-periods",
     subItems: [
-      { name: "Waiting ✅", path: "/dashboard/reports/waiting-success" },
-      { name: "Waiting ❌", path: "/dashboard/reports/waiting-failure" },
+      { name: "Waiting ✅", path: "/dashboard/reports/waiting-periods" },
+      { name: "Waiting ❌", path: "/dashboard/reports/waiting-periods" },
     ],
   },
   {
