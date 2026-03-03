@@ -30,9 +30,9 @@ export default function BulkUploadPage() {
   const downloadSample = () => {
     const sampleData = [
       ["family_no"],
-      ["MAU/631706/00"],
-      ["MAU/631706/01"],
-      ["MAU/631706/02"],
+      ["MAU/631706"],
+      ["MAU/631706"],
+      ["MAU/631706"],
     ];
     const worksheet = XLSX.utils.aoa_to_sheet(sampleData);
     const workbook = XLSX.utils.book_new();

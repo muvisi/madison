@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import InputField from "../src/components/InputField";
 import Button from "../src/components/Button";
 import Logo from "../src/components/Logo";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 type Triangle = {
   x: number;
@@ -20,8 +21,10 @@ export default function LoginPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [colorHue, setColorHue] = useState(0);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -46,13 +49,11 @@ export default function LoginPage() {
         return;
       }
 
-      // Save tokens to localStorage
       localStorage.setItem("accessToken", data.access);
       localStorage.setItem("refreshToken", data.refresh);
       localStorage.setItem("username", data.username);
       localStorage.setItem("uuid", data.uuid);
 
-      // Redirect to dashboard
       router.push("/dashboard");
     } catch (err) {
       setLoading(false);
@@ -128,6 +129,17 @@ export default function LoginPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // ---------- Rainbow Text Effect ----------
+  useEffect(() => {
+    let animationFrame: number;
+    const updateHue = () => {
+      setColorHue((prev) => (prev + 1) % 360);
+      animationFrame = requestAnimationFrame(updateHue);
+    };
+    animationFrame = requestAnimationFrame(updateHue);
+    return () => cancelAnimationFrame(animationFrame);
+  }, []);
+
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-50 overflow-hidden p-4">
       <canvas
@@ -137,8 +149,16 @@ export default function LoginPage() {
 
       <div className="relative z-10 bg-white shadow-lg rounded-xl w-full max-w-md p-8 sm:p-12">
         <Logo />
-        <h2 className="text-xl font-semibold text-gray-700 mb-6 text-center">
-          Healthcare is Fun
+
+        {/* Rainbow text without background */}
+        <h2
+          className="text-2xl font-extrabold mb-6 text-center"
+          style={{
+            color: `hsl(${colorHue}, 100%, 50%)`,
+            transition: "color 0.1s linear",
+          }}
+        >
+          Healthcare is Fun!
         </h2>
 
         {error && (
@@ -151,12 +171,26 @@ export default function LoginPage() {
             value={username}
             onChange={setUsername}
           />
-          <InputField
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={setPassword}
-          />
+
+          {/* Password with eye toggle */}
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition pr-12"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+            </button>
+          </div>
+
           <Button
             type="submit"
             text={loading ? "Logging in..." : "Login"}
