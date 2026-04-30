@@ -47,6 +47,7 @@ const navItems = [
       { name: "Provider ❌", path: "/dashboard/reports/provider-failure" },
     ],
   },
+  { name: "Commissions", path: "/dashboard/commissions" },
   { name: "Users", path: "/dashboard/users" },
   { name: "API Logs", path: "/dashboard/reports/api-sync" },
   { name: "Copay Logs", path: "/dashboard/reports/copays" },
