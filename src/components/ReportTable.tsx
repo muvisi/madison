@@ -29,16 +29,23 @@ export default function ReportTable({ title, endpoint, columns }: ReportTablePro
       );
       params.append("page", page.toString());
 
+      const token = getAccessToken();
+      console.log("TOKEN:", token);
+
       const res = await fetch(`${endpoint}?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${getAccessToken()}`,
         },
       });
 
+      console.log('res', res);
+
       const data = await res.json();
 
+      console.log('data', data);
+
       // DRF returns paginated data in 'results'
-      setRows(data.results || []);
+      setRows(data.results || [] );
       setTotalCount(data.count || 0);
     } catch (err) {
       toast.error("Failed to fetch data");

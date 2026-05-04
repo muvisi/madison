@@ -50,6 +50,7 @@ const navItems = [
   { name: "Users", path: "/dashboard/users" },
   { name: "API Logs", path: "/dashboard/reports/api-sync" },
   { name: "Copay Logs", path: "/dashboard/reports/copays" },
+  { name: "Commissions", path: "/dashboard/commissions" },
 ];
 
 export default function Sidebar() {
