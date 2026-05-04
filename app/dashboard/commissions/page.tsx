@@ -1,25 +1,26 @@
-import ReportTable from "@/src/components/ReportTable";
+import Tables from "@/src/components/Tables";
 
 export default function Commissions(){
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
-            <ReportTable
+            <Tables
                 title="Commissions"
-                // endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/report/copay/`}
                 endpoint={`${process.env.NEXT_LOCALHOST_API_URL}/commissions/records/`}
+                showDateFilter={true}
+                exactDateKey="push_note_request_date"
                 columns={[
-                    { key: "push_note_code", label: "Push Note Code" },
-                    { key: "dr_cr_note_number", label: "Debit/Credit Note" },
+                    { key: "dr_cr_note_number", label: "Debit Note" },
+                    { key: "push_note_request_date", label: "Push Note Date" },
                     { key: "policy_number", label: "Policy Number" },
-                    { key: "transaction_number", label: "Transaction Number" },
                     { key: "intermediary_name", label: "Intermediary Name" },
                     { key: "broker_name", label: "Broker Name" },
+                    { key: "intermediary_commission_rate", label: "Commission Rate" },
+                    { key: "intermediary_with_holding_tax_rate", label: "Withholding tax rate" },
                     { key: "commission_amount", label: "Commission Amount" },
                     { key: "transaction_total_amount", label: "Transaction Total" }
                 ]}
             />
         </div>
     );
-
 }
