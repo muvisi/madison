@@ -235,7 +235,7 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
             ) : (
                 <div className="overflow-x-auto border rounded-xl bg-white shadow-sm">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-blue-600 text-white font-medium">
+                        <thead className=" whitespace-nowrap bg-blue-600 text-white font-medium">
                         <tr>
                             {columns.map((col) => (
                                 <th key={col.key} className="p-4 border-b border-blue-500">
