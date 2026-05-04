@@ -21,6 +21,7 @@ export default function LoginPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loginMethod, setLoginMethod] = useState("ad");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -166,6 +167,16 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
+
+          <select
+              value={loginMethod}
+              onChange={(e) => setLoginMethod(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          >
+            <option value="ad">LPAD Login</option>
+            <option value="local">Local</option>
+          </select>
+
           <InputField
             placeholder="Username"
             value={username}

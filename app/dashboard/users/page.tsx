@@ -325,7 +325,9 @@ interface UserFormData {
   department?:string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+// const API_BASE_URL = process.env.NEXT_USER_API_URL;
 
 // ---------------- API CALLS ----------------
 const fetchUsers = async (): Promise<User[]> => {
@@ -447,13 +449,13 @@ export default function UsersPage() {
   };
 
   // ---------- Render only if admin ----------
-  if (currentUsername !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-        Access denied. Admins only.
-      </div>
-    );
-  }
+  // if (currentUsername !== "admin") {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+  //       Access denied. Admins only.
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-gray-100">
@@ -521,8 +523,8 @@ export default function UsersPage() {
                   required
               >
                 <option value="">Select Department</option>
-                <option value="Underwriting">Underwriting</option>
-                <option value="Finance">Finance</option>
+                <option value="underwriting">Underwriting</option>
+                <option value="finance">Finance</option>
               </select>
             </div>
 
@@ -553,7 +555,7 @@ export default function UsersPage() {
             <table className="w-full border-collapse border border-gray-200 text-left">
               <thead className="bg-gray-100">
                 <tr>
-                  {["Username", "Email", "First Name", "Last Name", "Actions"].map((head) => (
+                  {["Username", "Email", "First Name", "Last Name","Department", "Actions"].map((head) => (
                     <th key={head} className="border-b px-4 py-3 text-gray-700">
                       {head}
                     </th>
@@ -570,6 +572,7 @@ export default function UsersPage() {
                     <td className="px-4 py-2">{user.email}</td>
                     <td className="px-4 py-2">{user.first_name}</td>
                     <td className="px-4 py-2">{user.last_name}</td>
+                    <td className="px-4 py-2">{user.department}</td>
                     <td className="px-4 py-2 flex space-x-2">
                       <button
                         onClick={() => openEditModal(user)}
@@ -629,8 +632,8 @@ export default function UsersPage() {
                     required
                 >
                   <option value="">Select department</option>
-                  <option value="Underwriting">Underwriting</option>
-                  <option value="Finance">Finance</option>
+                  <option value="underwriting">Underwriting</option>
+                  <option value="finance">Finance</option>
                 </select>
               </div>
 
