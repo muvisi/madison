@@ -312,17 +312,22 @@ interface User {
   email: string;
   first_name?: string;
   last_name?: string;
+  department?:string;
+
 }
 
 interface UserFormData {
   username?: string;
   email?: string;
-  password?: string;
+  // password?: string;
   first_name?: string;
   last_name?: string;
+  department?:string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+// const API_BASE_URL = process.env.NEXT_USER_API_URL;
 
 // ---------------- API CALLS ----------------
 const fetchUsers = async (): Promise<User[]> => {
@@ -371,9 +376,10 @@ export default function UsersPage() {
   const [formData, setFormData] = useState<UserFormData>({
     username: "",
     email: "",
-    password: "",
+    // password: "",
     first_name: "",
     last_name: "",
+    department:"",
   });
 
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -402,7 +408,7 @@ export default function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setIsEditOpen(false);
       setEditUserId(null);
-      setFormData({ username: "", email: "", password: "", first_name: "", last_name: "" });
+      setFormData({ username: "", email: "", first_name: "", last_name: "", department:""});
     },
   });
 
@@ -438,18 +444,18 @@ export default function UsersPage() {
 
   const openEditModal = (user: User) => {
     setEditUserId(user.uuid);
-    setFormData({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name });
+    setFormData({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name, department: user.department });
     setIsEditOpen(true);
   };
 
   // ---------- Render only if admin ----------
-  if (currentUsername !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-        Access denied. Admins only.
-      </div>
-    );
-  }
+  // if (currentUsername !== "admin") {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+  //       Access denied. Admins only.
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-gray-100">
@@ -492,7 +498,7 @@ export default function UsersPage() {
           )}
 
           <form onSubmit={handleSubmitAdd} className="space-y-5">
-            {["username", "email", "password", "first_name", "last_name"].map((field) => (
+            {["username", "email", "first_name", "last_name"].map((field) => (
               <div key={field}>
                 <label className="block text-gray-700 mb-1 capitalize">{field.replace("_", " ")}</label>
                 <input
@@ -505,6 +511,22 @@ export default function UsersPage() {
                 />
               </div>
             ))}
+
+            <div>
+              <label className="block text-gray-700 mb-1">Department</label>
+
+              <select
+                  name="department"
+                  value={(formData as any).department || ""}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                  required
+              >
+                <option value="">Select Department</option>
+                <option value="underwriting">Underwriting</option>
+                <option value="finance">Finance</option>
+              </select>
+            </div>
 
             <button
               type="submit"
@@ -533,7 +555,7 @@ export default function UsersPage() {
             <table className="w-full border-collapse border border-gray-200 text-left">
               <thead className="bg-gray-100">
                 <tr>
-                  {["Username", "Email", "First Name", "Last Name", "Actions"].map((head) => (
+                  {["Username", "Email", "First Name", "Last Name","Department", "Actions"].map((head) => (
                     <th key={head} className="border-b px-4 py-3 text-gray-700">
                       {head}
                     </th>
@@ -550,6 +572,7 @@ export default function UsersPage() {
                     <td className="px-4 py-2">{user.email}</td>
                     <td className="px-4 py-2">{user.first_name}</td>
                     <td className="px-4 py-2">{user.last_name}</td>
+                    <td className="px-4 py-2">{user.department}</td>
                     <td className="px-4 py-2 flex space-x-2">
                       <button
                         onClick={() => openEditModal(user)}
@@ -598,6 +621,23 @@ export default function UsersPage() {
                   />
                 </div>
               ))}
+              <div>
+                <label className="block text-gray-700 mb-1">Department</label>
+
+                <select
+                    name="department"
+                    value={(formData as any).department || ""}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                    required
+                >
+                  <option value="">Select department</option>
+                  <option value="underwriting">Underwriting</option>
+                  <option value="finance">Finance</option>
+                </select>
+              </div>
+
+
 
               <button
                 type="submit"

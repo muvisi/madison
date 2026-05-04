@@ -74,3 +74,4 @@ media/
 *.egg-info/
 *.pytest_cache/
 venv/
+.idea/
