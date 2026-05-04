@@ -21,7 +21,7 @@ export default function LoginPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loginMethod, setLoginMethod] = useState("ad");
+  const [loginMethod, setLoginMethod] = useState("ldap");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -173,7 +173,7 @@ export default function LoginPage() {
               onChange={(e) => setLoginMethod(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
           >
-            <option value="ad">LPAD Madison</option>
+            <option value="ldap">LPAD Madison</option>
             <option value="local">Local</option>
           </select>
 

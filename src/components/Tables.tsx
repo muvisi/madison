@@ -38,7 +38,6 @@ export default function ReportTable({ title, endpoint, columns }: ReportTablePro
             });
 
             const token = getAccessToken();
-            console.log("TOKEN:", token);
 
             const res = await fetch(`${endpoint}?${params.toString()}`, {
                 headers: {
@@ -46,7 +45,6 @@ export default function ReportTable({ title, endpoint, columns }: ReportTablePro
                 },
             });
 
-            console.log('res',res)
 
             if (!res.ok) {
                 const errorText = await res.text();
@@ -57,9 +55,6 @@ export default function ReportTable({ title, endpoint, columns }: ReportTablePro
 
             const data = await res.json();
 
-            console.log('data', data);
-
-            // DRF returns paginated data in 'results'
             setRows(data.results || [] );
             setTotalCount(data.count || 0);
         } catch (err) {

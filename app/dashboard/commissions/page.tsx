@@ -5,7 +5,7 @@ export default function Commissions(){
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <Tables
-                title="Commissions"
+                title="Commissions Payable"
                 endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/records/`}
                 columns={[
                     { key: "dr_cr_note_number", label: "Debit Note" },
