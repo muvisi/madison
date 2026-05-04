@@ -312,14 +312,17 @@ interface User {
   email: string;
   first_name?: string;
   last_name?: string;
+  department?:string;
+
 }
 
 interface UserFormData {
   username?: string;
   email?: string;
-  password?: string;
+  // password?: string;
   first_name?: string;
   last_name?: string;
+  department?:string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -371,9 +374,10 @@ export default function UsersPage() {
   const [formData, setFormData] = useState<UserFormData>({
     username: "",
     email: "",
-    password: "",
+    // password: "",
     first_name: "",
     last_name: "",
+    department:"",
   });
 
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -402,7 +406,7 @@ export default function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setIsEditOpen(false);
       setEditUserId(null);
-      setFormData({ username: "", email: "", password: "", first_name: "", last_name: "" });
+      setFormData({ username: "", email: "", first_name: "", last_name: "", department:""});
     },
   });
 
@@ -438,7 +442,7 @@ export default function UsersPage() {
 
   const openEditModal = (user: User) => {
     setEditUserId(user.uuid);
-    setFormData({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name });
+    setFormData({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name, department: user.department });
     setIsEditOpen(true);
   };
 
@@ -492,7 +496,7 @@ export default function UsersPage() {
           )}
 
           <form onSubmit={handleSubmitAdd} className="space-y-5">
-            {["username", "email", "password", "first_name", "last_name"].map((field) => (
+            {["username", "email", "first_name", "last_name"].map((field) => (
               <div key={field}>
                 <label className="block text-gray-700 mb-1 capitalize">{field.replace("_", " ")}</label>
                 <input
@@ -505,6 +509,22 @@ export default function UsersPage() {
                 />
               </div>
             ))}
+
+            <div>
+              <label className="block text-gray-700 mb-1">Department</label>
+
+              <select
+                  name="department"
+                  value={(formData as any).department || ""}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                  required
+              >
+                <option value="">Select Department</option>
+                <option value="Underwriting">Underwriting</option>
+                <option value="Finance">Finance</option>
+              </select>
+            </div>
 
             <button
               type="submit"
@@ -598,6 +618,23 @@ export default function UsersPage() {
                   />
                 </div>
               ))}
+              <div>
+                <label className="block text-gray-700 mb-1">Department</label>
+
+                <select
+                    name="department"
+                    value={(formData as any).department || ""}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                    required
+                >
+                  <option value="">Select department</option>
+                  <option value="Underwriting">Underwriting</option>
+                  <option value="Finance">Finance</option>
+                </select>
+              </div>
+
+
 
               <button
                 type="submit"
