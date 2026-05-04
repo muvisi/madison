@@ -39,7 +39,7 @@ export default function LoginPage() {
       const res = await fetch(`${API_BASE_URL}/api/account/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, loginMethod }),
       });
 
       const data = await res.json();
@@ -173,7 +173,7 @@ export default function LoginPage() {
               onChange={(e) => setLoginMethod(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
           >
-            <option value="ad">LPAD Login</option>
+            <option value="ad">LPAD Madison</option>
             <option value="local">Local</option>
           </select>
 
