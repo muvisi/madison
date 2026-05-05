@@ -4,66 +4,122 @@ import { useState } from "react";
 import Tables from "@/src/components/Tables";
 
 export default function PaidPage() {
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [tableData, setTableData] = useState<any[]>([]);
-  
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ type: "success" | "error" | ""; message: string }>({
+    type: "",
+    message: "",
+  });
 
-  
+  // ✅ TOAST HANDLER
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ type, message });
+
+    setTimeout(() => {
+      setToast({ type: "", message: "" });
+    }, 3000);
+  };
+
+  // ✅ PAY SELECTED → BACKEND
   const handlePay = async () => {
-    console.log("SELECTED DATA:", selectedRows);
-
     if (selectedRows.length === 0) return;
 
-    // try {
-    //   const res = await fetch(
-    //     `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/pay/submit/`,
-    //     {
-    //       method: "POST",
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //       body: JSON.stringify({
-    //         data: selectedRows, 
-    //       }),
-    //     }
-    //   );
+    setLoading(true);
 
-    //   if (!res.ok) throw new Error("Failed");
+    try {
+      const payload = {
+        data: selectedRows.map((row) => ({
+          debit_code: row.debit_code,
+        })),
+      };
 
-    //   console.log("Success");
-    // } catch (err) {
-    //   console.error("Error sending data", err);
-    // }
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/authorize/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const text = await res.text();
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Payment failed");
+      }
+
+      console.log("SUCCESS:", data);
+
+      showToast("success", "💰 Payments processed successfully!");
+
+      // optional refresh
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err: any) {
+      console.error("PAYMENT ERROR:", err.message);
+      showToast("error", err.message || "Payment failed");
+    } finally {
+      setLoading(false);
+    }
   };
-  
-
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto p-4">
+
+      {/* 🔥 TOAST NOTIFICATIONS */}
+      {toast.message && (
+        <div
+          className={`fixed top-5 right-5 px-4 py-3 rounded shadow-lg text-white text-sm transition-all ${
+            toast.type === "success" ? "bg-green-600" : "bg-red-600"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
+
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-3">
+      <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Pay Commissions</h2>
 
         <button
           onClick={handlePay}
-          disabled={selectedRows.length === 0}
-          className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
+          disabled={selectedRows.length === 0 || loading}
+          className={`px-4 py-2 rounded text-white flex items-center gap-2 transition ${
+            loading || selectedRows.length === 0
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-green-600 hover:bg-green-700"
+          }`}
         >
-          Pay Selected ({selectedRows.length})
+          {loading ? (
+            <>
+              <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
+              Processing...
+            </>
+          ) : (
+            `Pay Selected (${selectedRows.length})`
+          )}
         </button>
       </div>
-
 
       {/* TABLE */}
       <Tables
         endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/pay/`}
-        hidePagination 
-        title={""} 
+        hidePagination
+        title={""}
         displayCheckBoxes
         onSelectionChange={(rows: any[]) => setSelectedRows(rows)}
         columns={[
           { key: "push_note_code", label: "Push Note" },
-          { key: "debit_note", label: "Debit Note" },
+          { key: "debit_code", label: "Debit Note" },
+          { key: "payment_status", label: "Status" },
           { key: "policy_number", label: "Policy" },
           { key: "customer_name", label: "Customer" },
           { key: "broker_name", label: "Broker" },
@@ -74,8 +130,6 @@ export default function PaidPage() {
           { key: "commission_payable", label: "Payable" },
         ]}
       />
-
-
     </div>
   );
 }

@@ -8,13 +8,20 @@ import * as XLSX from "xlsx";
 interface ReportTableProps {
     title: string;
     endpoint: string;
-    columns: { key: string; label: string }[];
+    // columns: { key: string; label: string }[];
+    columns: {
+    key: string;
+    label: string;
+    render?: (row: any) => React.ReactNode;
+}[];
     showDateFilter?: boolean;
     exactDateKey?: string;
     displayCheckBoxes?: boolean; 
     transform?: (data: any[]) => any[];
     hidePagination?: boolean;
     onSelectionChange?: (rows: any[]) => void;
+    render?: (row: any) => React.ReactNode; // ✅ ADD THIS
+
 }
 
 interface AgentOption {

@@ -8,6 +8,8 @@ interface ReportTableProps {
   title: string;
   endpoint: string;
   columns: { key: string; label: string }[];
+    render?: (row: any) => React.ReactNode; // ✅ ADD THIS
+
 }
 
 export default function ReportTable({ title, endpoint, columns }: ReportTableProps) {
