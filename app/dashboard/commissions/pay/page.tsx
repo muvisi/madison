@@ -6,28 +6,37 @@ import Tables from "@/src/components/Tables";
 export default function PaidPage() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [tableData, setTableData] = useState<any[]>([]);
+  
 
-  const toggleRow = (id: string) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  
+  const handlePay = async () => {
+    console.log("SELECTED DATA:", selectedRows);
+
+    if (selectedRows.length === 0) return;
+
+    // try {
+    //   const res = await fetch(
+    //     `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/pay/submit/`,
+    //     {
+    //       method: "POST",
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //       },
+    //       body: JSON.stringify({
+    //         data: selectedRows, 
+    //       }),
+    //     }
+    //   );
+
+    //   if (!res.ok) throw new Error("Failed");
+
+    //   console.log("Success");
+    // } catch (err) {
+    //   console.error("Error sending data", err);
+    // }
   };
+  
 
-  const toggleSelectAll = () => {
-    if (tableData.length === 0) return;
-
-    const allSelected = tableData.every((r) =>
-      selectedRows.includes(r.push_note_code)
-    );
-
-    setSelectedRows(
-      allSelected ? [] : tableData.map((r) => r.push_note_code)
-    );
-  };
-
-  const handlePay = () => {
-    console.log("PAY:", selectedRows);
-  };
 
   return (
     <div className="overflow-x-auto">
@@ -44,25 +53,14 @@ export default function PaidPage() {
         </button>
       </div>
 
-      {/* SELECT ALL */}
-      <div className="mb-2 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={
-            tableData.length > 0 &&
-            tableData.every((r) =>
-              selectedRows.includes(r.push_note_code)
-            )
-          }
-          onChange={toggleSelectAll}
-        />
-        <span>Select All</span>
-      </div>
 
       {/* TABLE */}
       <Tables
         endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/pay/`}
-        hidePagination
+        hidePagination 
+        title={""} 
+        displayCheckBoxes
+        onSelectionChange={(rows: any[]) => setSelectedRows(rows)}
         onDataLoaded={(data: any[]) => setTableData(data)}
         columns={[
           { key: "push_note_code", label: "Push Note" },
@@ -76,18 +74,7 @@ export default function PaidPage() {
         ]}
       />
 
-      {/* CHECKBOX COLUMN */}
-      <div className="absolute left-0 top-[120px] w-10">
-        {tableData.map((row) => (
-          <div key={row.push_note_code} className="h-[40px] flex items-center justify-center">
-            <input
-              type="checkbox"
-              checked={selectedRows.includes(row.push_note_code)}
-              onChange={() => toggleRow(row.push_note_code)}
-            />
-          </div>
-        ))}
-      </div>
+
     </div>
   );
 }

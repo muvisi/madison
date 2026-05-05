@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { getAccessToken } from "@/src/services/auth";
 import * as XLSX from "xlsx";
@@ -11,37 +11,14 @@ interface ReportTableProps {
     columns: { key: string; label: string }[];
     showDateFilter?: boolean;
     exactDateKey?: string;
-}
-
-// Inside @/src/components/Tables.tsx
-
-interface ReportTableProps {
-    title: string;
-    endpoint: string;
-    columns: { key: string; label: string }[];
-    showDateFilter?: boolean;
-    exactDateKey?: string;
-    // Add this line:
-    transform?: (data: any[]) => any[]; 
+    displayCheckBoxes?: boolean; 
+    transform?: (data: any[]) => any[];
     hidePagination?: boolean;
-
+    onSelectionChange?: (rows: any[]) => void;
 }
 
 
-    // ... inside your useEffect or data fetching logic:
-    // const [data, setData] = useState([]);
-
-    // When you fetch the data:
-    // let processedData = fetchedData;
-    // if (transform) {
-    //    processedData = transform(fetchedData);
-    // }
-    // setData(processedData);
-
-    // ... rest of component
-
-
-export default function ReportTable({ title, endpoint, columns, showDateFilter, exactDateKey }: ReportTableProps) {
+export default function ReportTable({ title, endpoint, columns, showDateFilter, exactDateKey, displayCheckBoxes, hidePagination, onSelectionChange}: ReportTableProps) {
     const [rows, setRows] = useState<Record<string, unknown>[]>([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState<{ [key: string]: string }>({});
@@ -49,17 +26,52 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
     // Pagination States
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
-    const pageSize = 20; // Page size
+    const pageSize = 20; 
     const [exporting, setExporting] = useState(false);
+    const [selectedRows, setSelectedRows] = useState<any[]>([]);
+
+    const summaryTotals = useMemo(() => {
+        return selectedRows.reduce(
+            (acc, row: any) => {
+                acc.receipted_amount += Number(row.receipted_amount) || 0;
+                acc.available_allocation += Number(row.available_allocation) || 0;
+                acc.broker_commission += Number(row.broker_commission) || 0;
+                acc.withholding_tax += Number(row.withholding_tax) || 0;
+                acc.commission_payable += Number(row.commission_payable) || 0;
+                return acc;
+            },
+            {
+                receipted_amount: 0,
+                available_allocation: 0,
+                broker_commission: 0,
+                withholding_tax: 0,
+                commission_payable: 0,
+            }
+        );
+    }, [selectedRows]);
+
+    const toggleRow = (row: any) => {
+    setSelectedRows((prev) =>
+        prev.some((r) => r === row)
+            ? prev.filter((r) => r !== row)
+            : [...prev, row]
+    );
+   };
+
+   const toggleAll = (checked: boolean) => {
+    if (checked) {
+        setSelectedRows(rows as any[]);
+    } else {
+        setSelectedRows([]);
+    }
+};
+
+
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Build query params: only include filters that have values
-            // const params = new URLSearchParams(
-            //     Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
-            // );
-            // params.append("page", page.toString());
+       
 
             const params = new URLSearchParams();
 
@@ -110,7 +122,17 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setPage(1);
+        setSelectedRows([]);
     }, [filters]);
+
+ 
+
+useEffect(() => {
+    if (onSelectionChange) {
+        onSelectionChange(selectedRows);
+        console.log("Selected rows:", selectedRows);
+    }
+}, [selectedRows]);
 
     const handleExport = async () => {
         setExporting(true);
@@ -140,6 +162,24 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
                 return;
             }
 
+            const exportTotals = exportData.reduce(
+                (acc: Record<string, number>, row: any) => {
+                    acc.receipted_amount += Number(row.receipted_amount) || 0;
+                    acc.available_allocation += Number(row.available_allocation) || 0;
+                    acc.broker_commission += Number(row.broker_commission) || 0;
+                    acc.withholding_tax += Number(row.withholding_tax) || 0;
+                    acc.commission_payable += Number(row.commission_payable) || 0;
+                    return acc;
+                },
+                {
+                    receipted_amount: 0,
+                    available_allocation: 0,
+                    broker_commission: 0,
+                    withholding_tax: 0,
+                    commission_payable: 0,
+                }
+            );
+
             // Map data to match columns
             const formattedData = exportData.map((row: any) => {
                 const newRow: Record<string, any> = {};
@@ -149,7 +189,35 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
                 return newRow;
             });
 
-            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+            const totalsRow: Record<string, any> = {};
+            columns.forEach((col, idx) => {
+                if (idx === 0) {
+                    totalsRow[col.label] = "Totals";
+                    return;
+                }
+
+                switch (col.key) {
+                    case "receipted_amount":
+                        totalsRow[col.label] = exportTotals.receipted_amount.toLocaleString();
+                        break;
+                    case "available_allocation":
+                        totalsRow[col.label] = exportTotals.available_allocation.toLocaleString();
+                        break;
+                    case "broker_commission":
+                        totalsRow[col.label] = exportTotals.broker_commission.toLocaleString();
+                        break;
+                    case "withholding_tax":
+                        totalsRow[col.label] = exportTotals.withholding_tax.toLocaleString();
+                        break;
+                    case "commission_payable":
+                        totalsRow[col.label] = exportTotals.commission_payable.toLocaleString();
+                        break;
+                    default:
+                        totalsRow[col.label] = "";
+                }
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet([...formattedData, totalsRow]);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Export");
             XLSX.writeFile(workbook, `${title}_Export_${new Date().toISOString().split("T")[0]}.xlsx`);
@@ -263,8 +331,28 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
             ) : (
                 <div className="overflow-x-auto border rounded-xl bg-white shadow-sm">
                     <table className="w-full text-sm text-left">
-                        <thead className=" whitespace-nowrap bg-blue-600 text-white font-medium">
+                               <thead className="whitespace-nowrap bg-blue-600 text-white font-medium">
                         <tr>
+
+                            {displayCheckBoxes && (
+                                <th className="p-3">
+                                    <div className="flex items-center gap-2">
+      <input
+    type="checkbox"
+    checked={
+        rows.length > 0 &&
+        selectedRows.length === rows.length
+    }
+    onChange={(e) => toggleAll(e.target.checked)}
+/>
+        <span className="text-sm">Select All</span>
+    </div>
+                                   
+                                </th>
+
+                                
+                            )}
+
                             {columns.map((col) => (
                                 <th key={col.key} className="p-4 border-b border-blue-500">
                                     {col.label}
@@ -272,6 +360,15 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
                             ))}
                         </tr>
                         </thead>
+                        {/* <thead className=" whitespace-nowrap bg-blue-600 text-white font-medium">
+                        <tr>
+                            {columns.map((col) => (
+                                <th key={col.key} className="p-4 border-b border-blue-500">
+                                    {col.label}
+                                </th>
+                            ))}
+                        </tr>
+                        </thead> */}
                         <tbody>
                         {rows.length === 0 ? (
                             <tr>
@@ -282,13 +379,85 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
                         ) : (
                             rows.map((row: Record<string, unknown>, idx: number) => (
                                 <tr key={idx} className="border-b last:border-0 hover:bg-blue-50 transition-colors">
+
+                                    {displayCheckBoxes && (
+                                        <td className="p-4 text-gray-700">
+                                      <input
+    type="checkbox"
+    checked={selectedRows.some(
+        (r) => r.push_note_code === (row as any).push_note_code
+    )}
+    onChange={() => toggleRow(row)}
+/>
+                                        </td>
+                                    )}
+
                                     {columns.map((col) => (
-                                        <td key={col.key} className="p-4 text-gray-700">
+                                            <td key={col.key} className="p-4 text-gray-700">
                                             {typeof row[col.key] === "object" ? JSON.stringify(row[col.key]) : (row[col.key] as string) || "-"}
                                         </td>
                                     ))}
                                 </tr>
+
+                                // <tr key={idx} className="border-b last:border-0 hover:bg-blue-50 transition-colors">
+                                //     {columns.map((col) => (
+                                //         <td key={col.key} className="p-4 text-gray-700">
+                                //             {typeof row[col.key] === "object" ? JSON.stringify(row[col.key]) : (row[col.key] as string) || "-"}
+                                //         </td>
+                                //     ))}
+                                // </tr>
                             ))
+                        )}
+                        {selectedRows.length > 0 && (
+                            <tr className="bg-blue-50 font-semibold text-gray-900">
+                                {displayCheckBoxes && <td className="p-4" />}
+                                {columns.map((col, idx) => {
+                                    if (idx === 0) {
+                                        return (
+                                            <td key={col.key} className="p-4">
+                                                Totals ({selectedRows.length})
+                                            </td>
+                                        );
+                                    }
+
+                                    switch (col.key) {
+                                        case "receipted_amount":
+                                            return (
+                                                <td key={col.key} className="p-4">
+                                                    {summaryTotals.receipted_amount.toLocaleString()}
+                                                </td>
+                                            );
+                                        case "available_allocation":
+                                            return (
+                                                <td key={col.key} className="p-4">
+                                                    {summaryTotals.available_allocation.toLocaleString()}
+                                                </td>
+                                            );
+                                        case "broker_commission":
+                                            return (
+                                                <td key={col.key} className="p-4">
+                                                    {summaryTotals.broker_commission.toLocaleString()}
+                                                </td>
+                                            );
+                                        case "withholding_tax":
+                                            return (
+                                                <td key={col.key} className="p-4">
+                                                    {summaryTotals.withholding_tax.toLocaleString()}
+                                                </td>
+                                            );
+                                        case "commission_payable":
+                                            return (
+                                                <td key={col.key} className="p-4">
+                                                    {summaryTotals.commission_payable.toLocaleString()}
+                                                </td>
+                                            );
+                                        default:
+                                            return (
+                                                <td key={col.key} className="p-4 text-gray-500">-</td>
+                                            );
+                                    }
+                                })}
+                            </tr>
                         )}
                         </tbody>
                     </table>
