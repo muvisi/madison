@@ -395,7 +395,7 @@ export default function UsersPage() {
   const addMutation: UseMutationResult<User, Error, UserFormData> = useMutation({
     mutationFn: addUser,
     onSuccess: () => {
-      setFormData({ username: "", email: "", password: "", first_name: "", last_name: "" });
+      setFormData({ username: "", email: "", first_name: "", last_name: "", department:"" });
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
@@ -425,9 +425,20 @@ export default function UsersPage() {
   });
 
   // ---------- Handlers ----------
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setFormData({ ...formData, [e.target.name]: e.target.value });
+  // };
+
+  const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+) => {
+  const { name, value } = e.target;
+
+  setFormData((prev: any) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
 
   const handleSubmitAdd = (e: FormEvent) => {
     e.preventDefault();

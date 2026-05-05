@@ -61,7 +61,6 @@ export default function PaidPage() {
         title={""} 
         displayCheckBoxes
         onSelectionChange={(rows: any[]) => setSelectedRows(rows)}
-        onDataLoaded={(data: any[]) => setTableData(data)}
         columns={[
           { key: "push_note_code", label: "Push Note" },
           { key: "policy_number", label: "Policy" },

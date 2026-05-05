@@ -17,6 +17,10 @@ interface ReportTableProps {
     onSelectionChange?: (rows: any[]) => void;
 }
 
+interface AgentOption {
+    value: string;
+    label: string;
+}
 
 export default function ReportTable({ title, endpoint, columns, showDateFilter, exactDateKey, displayCheckBoxes, hidePagination, onSelectionChange}: ReportTableProps) {
     const [rows, setRows] = useState<Record<string, unknown>[]>([]);
@@ -29,6 +33,7 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
     const pageSize = 20; 
     const [exporting, setExporting] = useState(false);
     const [selectedRows, setSelectedRows] = useState<any[]>([]);
+    const [agents, setAgents] = useState<AgentOption[]>([]);
 
     const summaryTotals = useMemo(() => {
         return selectedRows.reduce(
@@ -112,6 +117,41 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
     };
 
     // Reset page when filters change
+
+    useEffect(() => {
+        const fetchAgents = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/commisions/getagentbrokers/`, {
+                    headers: {
+                        Authorization: `Bearer ${getAccessToken()}`,
+                    },
+                });
+
+                if (!res.ok) {
+                    throw new Error("Failed to fetch agents");
+                }
+
+                const data = await res.json();
+                const items = data.results || data || []; 
+
+                console.log("Fetched agents:", items);
+
+                setAgents(
+                    (items as any[])
+                        .map((agent) => ({
+                            value: String(agent.agentbrokername ?? ""),
+                            label: String(agent.agentbrokername ?? ""),
+                        }))
+                        .filter((agent) => agent.value && agent.label)
+                );
+            } catch (_err) {
+                console.error(_err);
+                toast.error("Failed to load agents");
+            }
+        };
+
+        fetchAgents();
+    }, []);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -245,6 +285,27 @@ useEffect(() => {
 
             {/* Filters */}
             <div className="flex gap-2 mb-4 flex-wrap bg-white p-3 rounded-lg border shadow-sm items-end">
+                <div className="flex flex-col">
+                
+                    <select
+                        value={filters.broker_name || ""}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            setFilters((prev) => ({
+                                ...prev,
+                                broker_name: value,
+                            }));
+                        }}
+                        className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-48 bg-white"
+                    >
+                        <option value="">Select Agent</option>
+                        {agents.map((agent) => (
+                            <option key={agent.value} value={agent.value}>
+                                {agent.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 {columns.slice(0, 4).map((col) => (
                     <div key={col.key} className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1 opacity-0 hidden sm:block">Filter</label>
