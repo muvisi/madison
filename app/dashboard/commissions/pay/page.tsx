@@ -63,7 +63,9 @@ export default function PaidPage() {
         onSelectionChange={(rows: any[]) => setSelectedRows(rows)}
         columns={[
           { key: "push_note_code", label: "Push Note" },
+          { key: "debit_note", label: "Debit Note" },
           { key: "policy_number", label: "Policy" },
+          { key: "customer_name", label: "Customer" },
           { key: "broker_name", label: "Broker" },
           { key: "receipted_amount", label: "Receipted" },
           { key: "available_allocation", label: "Allocation" },
