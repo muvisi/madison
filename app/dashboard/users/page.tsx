@@ -310,6 +310,7 @@ interface User {
   uuid: string;
   username: string;
   email: string;
+  password?: string;
   first_name?: string;
   last_name?: string;
   department?:string;
@@ -318,7 +319,9 @@ interface User {
 
 interface UserFormData {
   username?: string;
+  password?: string;
   email?: string;
+  login_method?: string;
   first_name?: string;
   last_name?: string;
   department?:string;
@@ -375,15 +378,17 @@ export default function UsersPage() {
   const [formData, setFormData] = useState<UserFormData>({
     username: "",
     email: "",
-    // password: "",
+    password: "",
     first_name: "",
     last_name: "",
     department:"",
+    login_method: "",
   });
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editUserId, setEditUserId] = useState<string | null>(null);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // ---------- Fetch current user ----------
   useEffect(() => {
@@ -391,11 +396,21 @@ export default function UsersPage() {
     setCurrentUsername(username);
   }, []);
 
+ useEffect(() => {
+  if (formData.login_method === "ldap") {
+    setFormData((prev: any) => ({
+      ...prev,
+      password: "",
+    }));
+    setShowPassword(false);
+  }
+}, [formData.login_method]);
+
   // ---------- Add Mutation ----------
   const addMutation: UseMutationResult<User, Error, UserFormData> = useMutation({
     mutationFn: addUser,
     onSuccess: () => {
-      setFormData({ username: "", email: "", first_name: "", last_name: "", department:"" });
+      setFormData({ username: "", email: "", first_name: "", last_name: "", password: "", department:"" });
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
@@ -421,7 +436,7 @@ export default function UsersPage() {
   const { data: users, isLoading, isError } = useQuery<User[], Error>({
     queryKey: ["users"],
     queryFn: fetchUsers,
-    enabled: activeTab === "list" && currentUsername === "admin",
+    enabled: activeTab === "list" || currentUsername === "admin",
   });
 
   // ---------- Handlers ----------
@@ -440,10 +455,29 @@ export default function UsersPage() {
   }));
 };
 
+
+
   const handleSubmitAdd = (e: FormEvent) => {
-    e.preventDefault();
-    addMutation.mutate(formData);
+  e.preventDefault();
+
+  const payload: any = {
+    username: formData.username,
+    email: formData.email,
+    first_name: formData.first_name,
+    last_name: formData.last_name,
+    login_method: formData.login_method,
+    department: formData.department,
   };
+
+  if (
+    formData.login_method === "local" &&
+    formData.password?.trim()
+  ) {
+    payload.password = formData.password;
+  }
+
+  addMutation.mutate(payload);
+};
 
   const handleSubmitEdit = (e: FormEvent) => {
     e.preventDefault();
@@ -459,13 +493,13 @@ export default function UsersPage() {
   };
 
   // ---------- Render only if admin ----------
-  if (currentUsername !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-        Access denied. Admins only.
-      </div>
-    );
-  }
+  // if (currentUsername !== "admin") {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+  //       Access denied. Admins only.
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-gray-100">
@@ -507,49 +541,86 @@ export default function UsersPage() {
             </div>
           )}
 
+        
+
           <form onSubmit={handleSubmitAdd} className="space-y-5">
-            {["username", "email", "first_name", "last_name"].map((field) => (
-              <div key={field}>
-                <label className="block text-gray-700 mb-1 capitalize">{field.replace("_", " ")}</label>
-                <input
-                  type={field === "password" ? "password" : "text"}
-                  name={field}
-                  value={(formData as any)[field] || ""}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                  required={["username", "email", "password"].includes(field)}
-                />
-              </div>
-            ))}
 
-            <div>
-              <label className="block text-gray-700 mb-1">Department</label>
+      {/* Login Method */}
+      <div>
+        <label className="block text-gray-700 mb-1">Login Method</label>
 
-              <select
-                  name="department"
-                  value={(formData as any).department || ""}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                  required
-              >
-                <option value="">Select Department</option>
-                <option value="underwriting">Underwriting</option>
-                <option value="finance">Finance</option>
-              </select>
-            </div>
+        <select
+          name="login_method"
+          value={formData.login_method || ""}
+          onChange={handleChange}
+          className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          required
+        >
+          <option value="">Select Login Method</option>
+          <option value="ldap">LDAP Madison</option>
+          <option value="local">Local</option>
+        </select>
+      </div>
 
-            <button
-              type="submit"
-              disabled={addMutation.status === "pending"}
-              className={`w-full py-3 rounded-xl text-white font-bold text-lg transition-all duration-300 ${
-                addMutation.status === "pending"
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105"
-              }`}
-            >
-              {addMutation.status === "pending" ? "Creating..." : "Add User"}
-            </button>
-          </form>
+      {/* Dynamic Fields */}
+      {["username", "email", "first_name", "last_name", "password"]
+        .filter((field) => {
+        
+          if (field === "password" && formData.login_method === "ldap") {
+            return false;
+          }
+          return true;
+        })
+        .map((field) => (
+          <div key={field}>
+            <label className="block text-gray-700 mb-1 capitalize">
+              {field.replace("_", " ")}
+            </label>
+
+            <input
+              type={field === "password" ? "password" : "text"}
+              name={field}
+              value={(formData as any)[field] || ""}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              required={
+                ["username", "email", "password"].includes(field) &&
+                formData.login_method === "local"
+              }
+            />
+          </div>
+        ))}
+
+      {/* Department */}
+      <div>
+        <label className="block text-gray-700 mb-1">Department</label>
+
+        <select
+          name="department"
+          value={formData.department || ""}
+          onChange={handleChange}
+          className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          required
+        >
+          <option value="">Select Department</option>
+          <option value="underwriting">Underwriting</option>
+          <option value="finance">Finance</option>
+        </select>
+      </div>
+
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={addMutation.status === "pending"}
+        className={`w-full py-3 rounded-xl text-white font-bold text-lg transition-all duration-300 ${
+          addMutation.status === "pending"
+            ? "bg-blue-300 cursor-not-allowed"
+            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105"
+        }`}
+      >
+        {addMutation.status === "pending" ? "Creating..." : "Add User"}
+      </button>
+    </form>
         </div>
       )}
 
