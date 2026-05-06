@@ -436,7 +436,7 @@ export default function UsersPage() {
   const { data: users, isLoading, isError } = useQuery<User[], Error>({
     queryKey: ["users"],
     queryFn: fetchUsers,
-    enabled: activeTab === "list" || currentUsername === "admin",
+    enabled: activeTab === "list" && currentUsername === "admin",
   });
 
   // ---------- Handlers ----------
@@ -493,13 +493,13 @@ export default function UsersPage() {
   };
 
   // ---------- Render only if admin ----------
-  // if (currentUsername !== "admin") {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-  //       Access denied. Admins only.
-  //     </div>
-  //   );
-  // }
+  if (currentUsername !== "admin") {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+        Access denied. Admins only.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-gray-100">
