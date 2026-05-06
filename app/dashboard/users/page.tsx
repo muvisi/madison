@@ -310,6 +310,7 @@ interface User {
   uuid: string;
   username: string;
   email: string;
+  password?: string;
   first_name?: string;
   last_name?: string;
   department?:string;
@@ -318,6 +319,7 @@ interface User {
 
 interface UserFormData {
   username?: string;
+  password?: string;
   email?: string;
   first_name?: string;
   last_name?: string;
@@ -375,7 +377,7 @@ export default function UsersPage() {
   const [formData, setFormData] = useState<UserFormData>({
     username: "",
     email: "",
-    // password: "",
+    password: "",
     first_name: "",
     last_name: "",
     department:"",
@@ -395,7 +397,7 @@ export default function UsersPage() {
   const addMutation: UseMutationResult<User, Error, UserFormData> = useMutation({
     mutationFn: addUser,
     onSuccess: () => {
-      setFormData({ username: "", email: "", first_name: "", last_name: "", department:"" });
+      setFormData({ username: "", email: "", first_name: "", password: "", last_name: "", department:"" });
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
@@ -421,7 +423,7 @@ export default function UsersPage() {
   const { data: users, isLoading, isError } = useQuery<User[], Error>({
     queryKey: ["users"],
     queryFn: fetchUsers,
-    enabled: activeTab === "list" && currentUsername === "admin",
+    enabled: activeTab === "list" || currentUsername === "admin",
   });
 
   // ---------- Handlers ----------
@@ -459,13 +461,13 @@ export default function UsersPage() {
   };
 
   // ---------- Render only if admin ----------
-  if (currentUsername !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-        Access denied. Admins only.
-      </div>
-    );
-  }
+  // if (currentUsername !== "admin") {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+  //       Access denied. Admins only.
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-gray-100">
@@ -508,7 +510,22 @@ export default function UsersPage() {
           )}
 
           <form onSubmit={handleSubmitAdd} className="space-y-5">
-            {["username", "email", "first_name", "last_name"].map((field) => (
+             <div>
+              <label className="block text-gray-700 mb-1">Login Method</label>
+
+              <select
+                  name="login_method"
+                  value={(formData as any).login_method || ""}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                  required
+              >
+                <option value="">Select Login Method</option>
+                 <option value="ldap">LDAP Madison</option>
+                 <option value="local">Local</option>
+              </select>
+            </div>
+            {["username", "email", "first_name",  "last_name", "password"].map((field) => (
               <div key={field}>
                 <label className="block text-gray-700 mb-1 capitalize">{field.replace("_", " ")}</label>
                 <input

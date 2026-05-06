@@ -174,7 +174,7 @@ export default function LoginPage() {
               onChange={(e) => setLoginMethod(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
           >
-            <option value="ldap">LPAD Madison</option>
+            <option value="ldap">LDAP Madison</option>
             <option value="local">Local</option>
           </select>
 
