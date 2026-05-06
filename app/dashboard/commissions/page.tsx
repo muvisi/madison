@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccess } from "@/src/services/access";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -11,11 +12,17 @@ export default function CommissionLayout({
 }) {
 
    const [userDepartment, setUserDepartment] = useState<string | null>(null);
+    const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   
     useEffect(() => {
       const department = localStorage.getItem("department");
       setUserDepartment(department);
     }, []);
+
+      useEffect(() => {
+    const username = localStorage.getItem("username");
+    setCurrentUsername(username);
+  }, []);
 
 
     
@@ -44,13 +51,24 @@ export default function CommissionLayout({
 
   const isActive = (href: string) => pathname.startsWith(href);
 
-    if (userDepartment !== "finance") {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-        Access denied. This module is restricted to Finance department only.
-      </div>
-    );
-  }
+  
+    const hasAccess = useAccess("finance");
+    
+      if (!hasAccess) {
+        return (
+          <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+            Access denied. This module is restricted to Finance department only.
+          </div>
+        );
+      }
+
+  //   if (userDepartment !== "finance" && currentUsername !== "admin") {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+  //       Access denied. This module is restricted to Finance department only.
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50">

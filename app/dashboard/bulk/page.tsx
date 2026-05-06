@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { getAccessToken } from "@/src/services/auth";
 import { saveAs } from "file-saver";
+import { useAccess } from "@/src/services/access";
 
 export default function BulkUploadPage() {
   const router = useRouter();
@@ -13,6 +14,8 @@ export default function BulkUploadPage() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userDepartment, setUserDepartment] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
 
   const API_BASE =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -24,7 +27,9 @@ export default function BulkUploadPage() {
     else setLoading(false);
   }, [router]);
 
+ 
   if (loading) return <p className="text-center mt-20">Loading...</p>;
+
 
   // 📥 Download Sample Excel
   const downloadSample = () => {
@@ -114,6 +119,17 @@ export default function BulkUploadPage() {
       setIsSubmitting(false);
     }
   };
+
+ const hasAccess = useAccess("underwriting");
+
+   if (!hasAccess) {
+     return (
+       <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+         Access denied. This module is restricted to Underwriting department only.
+       </div>
+     );
+   }
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center">
