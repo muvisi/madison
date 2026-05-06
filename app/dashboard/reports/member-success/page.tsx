@@ -74,6 +74,7 @@
 // ]}
 "use client";
 
+import { useAccess } from "@/src/services/access";
 import React, { useEffect, useState } from "react";
 
 interface Member {
@@ -124,6 +125,16 @@ export default function MemberSuccessReport() {
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
+
+  const hasAccess = useAccess("underwriting");
+  
+    if (!hasAccess) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+          Access denied. This module is restricted to Underwriting department only.
+        </div>
+      );
+    }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
