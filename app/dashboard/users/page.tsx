@@ -351,7 +351,7 @@ const addUser = async (user: UserFormData): Promise<User> => {
 };
 
 const updateUser = async (uuid: string, user: UserFormData): Promise<User> => {
-  const res = await fetch(`${API_BASE_URL}/api/account/users/${uuid}/`, {
+  const res = await fetch(`${API_BASE_URL}/api/account/user/update/${uuid}/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user),
