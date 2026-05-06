@@ -2,12 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function CommissionLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
+   const [userDepartment, setUserDepartment] = useState<string | null>(null);
+  
+    useEffect(() => {
+      const department = localStorage.getItem("department");
+      setUserDepartment(department);
+    }, []);
+
+
+    
   const pathname = usePathname();
 
   const nav = [
@@ -32,6 +43,14 @@ export default function CommissionLayout({
   ];
 
   const isActive = (href: string) => pathname.startsWith(href);
+
+    if (userDepartment !== "finance") {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+        Access denied. This module is restricted to Finance department only.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -108,3 +127,4 @@ export default function CommissionLayout({
     </div>
   );
 }
+

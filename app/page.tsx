@@ -54,6 +54,7 @@ export default function LoginPage() {
       localStorage.setItem("refreshToken", data.refresh);
       localStorage.setItem("username", data.username);
       localStorage.setItem("uuid", data.uuid);
+      localStorage.setItem("department", data.department);
 
       router.push("/dashboard");
     } catch (err) {

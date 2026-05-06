@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Tables from "@/src/components/Tables";
+import { FaArrowLeft } from "react-icons/fa";
+import Link from "next/link";
 
 export default function PaidPage() {
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
@@ -44,6 +46,8 @@ export default function PaidPage() {
         }
       );
 
+  
+
       const text = await res.text();
 
       let data;
@@ -57,7 +61,6 @@ export default function PaidPage() {
         throw new Error(data?.error || "Payment failed");
       }
 
-      console.log("SUCCESS:", data);
 
       showToast("success", "💰 Payments processed successfully!");
 
@@ -77,7 +80,7 @@ export default function PaidPage() {
       {/* 🔥 TOAST NOTIFICATIONS */}
       {toast.message && (
         <div
-          className={`fixed top-5 right-5 px-4 py-3 rounded shadow-lg text-white text-sm transition-all ${
+          className={`fixed top-5 right-5 px-4 py-3 rounded shadow-lg text-white text-sm transition-all  z-[9999] ${
             toast.type === "success" ? "bg-green-600" : "bg-red-600"
           }`}
         >
@@ -86,6 +89,14 @@ export default function PaidPage() {
       )}
 
       {/* HEADER */}
+      <div className="mb-4">
+        <Link
+          href="/dashboard/commissions"
+          className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded flex items-center gap-2 inline-flex"
+        >
+          ← Back to dashboard
+        </Link>
+      </div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Pay Commissions</h2>
 
