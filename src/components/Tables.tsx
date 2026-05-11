@@ -112,7 +112,7 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
             const data = await res.json();
 
             setRows(data.results || [] );
-            setTotalCount(data.count || 0);
+            setTotalCount(data.count || data.pagination?.count || 0);
         } catch (_err) {
             console.error(_err);
             toast.error("Failed to fetch data");

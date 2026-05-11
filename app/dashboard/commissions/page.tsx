@@ -47,6 +47,12 @@ export default function CommissionLayout({
       desc: "Process broker commission payouts",
       icon: "💰",
     },
+      {
+      href: "/dashboard/commissions/paid",
+      label: "Paid Commissions",
+      desc: "Track all paid commissions and history",
+      icon: "✅",
+    },
   ];
 
   const isActive = (href: string) => pathname.startsWith(href);
