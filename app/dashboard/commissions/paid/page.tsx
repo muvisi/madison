@@ -36,7 +36,7 @@ export default function PaidPage() {
           { key: "withholding_tax", label: "WHT" },
           { key: "commission_payable", label: "Payable" },
           { key: "commission_status", label: "Commission Status" },
-          { key: "payment_date", label: "Payment Date" },
+          { key: "paid_at", label: "Payment Date" },
         ]}
       />
     </div>
