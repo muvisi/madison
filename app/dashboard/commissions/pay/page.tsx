@@ -126,6 +126,8 @@ export default function PaidPage() {
         hidePagination
         title={""}
         displayCheckBoxes
+        showDateFilter
+        exactDateKey="receipt_date"
         onSelectionChange={(rows: any[]) => setSelectedRows(rows)}
         columns={[
           { key: "push_note_code", label: "Push Note" },
@@ -139,6 +141,7 @@ export default function PaidPage() {
           { key: "broker_commission", label: "Broker Comm" },
           { key: "withholding_tax", label: "WHT" },
           { key: "commission_payable", label: "Payable" },
+          { key: "receipt_date", label: "Receipt Date" },
         ]}
       />
     </div>
