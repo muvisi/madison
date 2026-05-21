@@ -58,15 +58,15 @@ export default function CommissionLayout({
   const isActive = (href: string) => pathname.startsWith(href);
 
   
-    const hasAccess = useAccess("finance");
+    // const hasAccess = useAccess("finance");
     
-      if (!hasAccess) {
-        return (
-          <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-            Access denied. This module is restricted to Finance department only.
-          </div>
-        );
-      }
+    //   if (!hasAccess) {
+    //     return (
+    //       <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
+    //         Access denied. This module is restricted to Finance department only.
+    //       </div>
+    //     );
+    //   }
 
   //   if (userDepartment !== "finance" && currentUsername !== "admin") {
   //   return (

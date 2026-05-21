@@ -4,6 +4,7 @@ import { useState } from "react";
 import Tables from "@/src/components/Tables";
 import { FaArrowLeft } from "react-icons/fa";
 import Link from "next/link";
+import { useAccess } from "@/src/services/access";
 
 export default function PaidPage() {
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
@@ -12,6 +13,8 @@ export default function PaidPage() {
     type: "",
     message: "",
   });
+
+  const isFinance = useAccess("finance");
 
   // ✅ TOAST HANDLER
   const showToast = (type: "success" | "error", message: string) => {
@@ -100,6 +103,7 @@ export default function PaidPage() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Pay Commissions</h2>
 
+{isFinance && (
         <button
           onClick={handlePay}
           disabled={selectedRows.length === 0 || loading}
@@ -118,6 +122,7 @@ export default function PaidPage() {
             `Pay Selected (${selectedRows.length})`
           )}
         </button>
+        )}
       </div>
 
       {/* TABLE */}
