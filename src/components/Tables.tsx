@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { getAccessToken } from "@/src/services/auth";
 import * as XLSX from "xlsx";
+import Select from "react-select";
 
 interface ReportTableProps {
     title: string;
@@ -41,6 +42,7 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
     const [exporting, setExporting] = useState(false);
     const [selectedRows, setSelectedRows] = useState<any[]>([]);
     const [agents, setAgents] = useState<AgentOption[]>([]);
+
 
     const summaryTotals = useMemo(() => {
         return selectedRows.reduce(
@@ -292,7 +294,7 @@ useEffect(() => {
 
             {/* Filters */}
             <div className="flex gap-2 mb-4 flex-wrap bg-white p-3 rounded-lg border shadow-sm items-end">
-                <div className="flex flex-col">
+                {/* <div className="flex flex-col">
                 
                     <select
                         value={filters.broker_name || ""}
@@ -312,7 +314,28 @@ useEffect(() => {
                             </option>
                         ))}
                     </select>
-                </div>
+                </div> */}
+                <div className="w-full sm:w-48">
+            <Select<AgentOption>
+                options={agents}
+                isSearchable
+                isClearable
+                placeholder="Select Agent"
+                
+                value={
+                    agents.find(
+                        (agent) =>
+                            agent.value === filters.broker_name
+                    ) || null
+                }
+                onChange={(selectedOption) => {
+                    setFilters((prev) => ({
+                        ...prev,
+                        broker_name: selectedOption?.value || "",
+                    }));
+                }}
+            />
+        </div>
                 {columns.slice(0, 4).map((col) => (
                     <div key={col.key} className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1 opacity-0 hidden sm:block">Filter</label>
