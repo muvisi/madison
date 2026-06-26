@@ -51,6 +51,7 @@ const navItems = [
   { name: "API Logs", path: "/dashboard/reports/api-sync" },
   { name: "Copay Logs", path: "/dashboard/reports/copays" },
   { name: "Commissions Payable", path: "/dashboard/commissions" },
+  { name: "eTIMS Debit/Credit Status", path: "/dashboard/etims" },
 ];
 
 export default function Sidebar() {

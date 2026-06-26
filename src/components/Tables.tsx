@@ -20,8 +20,9 @@ interface ReportTableProps {
     displayCheckBoxes?: boolean; 
     transform?: (data: any[]) => any[];
     hidePagination?: boolean;
+    showAgentFilter?: boolean;
     onSelectionChange?: (rows: any[]) => void;
-    render?: (row: any) => React.ReactNode; // ✅ ADD THIS
+    render?: (row: any) => React.ReactNode; 
 
 }
 
@@ -30,7 +31,7 @@ interface AgentOption {
     label: string;
 }
 
-export default function ReportTable({ title, endpoint, columns, showDateFilter, exactDateKey, displayCheckBoxes, hidePagination, onSelectionChange}: ReportTableProps) {
+export default function ReportTable({ title, endpoint, columns, showDateFilter, exactDateKey, displayCheckBoxes, hidePagination, onSelectionChange,showAgentFilter}: ReportTableProps) {
     const [rows, setRows] = useState<Record<string, unknown>[]>([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState<{ [key: string]: string }>({});
@@ -113,7 +114,7 @@ export default function ReportTable({ title, endpoint, columns, showDateFilter, 
 
             const data = await res.json();
 
-            setRows(data.results || [] );
+            setRows(data.results || data || [] );
             setTotalCount(data.count || data.pagination?.count || 0);
         } catch (_err) {
             console.error(_err);
@@ -294,27 +295,8 @@ useEffect(() => {
 
             {/* Filters */}
             <div className="flex gap-2 mb-4 flex-wrap bg-white p-3 rounded-lg border shadow-sm items-end">
-                {/* <div className="flex flex-col">
                 
-                    <select
-                        value={filters.broker_name || ""}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            setFilters((prev) => ({
-                                ...prev,
-                                broker_name: value,
-                            }));
-                        }}
-                        className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-48 bg-white"
-                    >
-                        <option value="">Select Agent</option>
-                        {agents.map((agent) => (
-                            <option key={agent.value} value={agent.value}>
-                                {agent.label}
-                            </option>
-                        ))}
-                    </select>
-                </div> */}
+                  {showAgentFilter && (
                 <div className="w-full sm:w-48">
             <Select<AgentOption>
                 options={agents}
@@ -336,6 +318,7 @@ useEffect(() => {
                 }}
             />
         </div>
+           )}
                 {columns.slice(0, 4).map((col) => (
                     <div key={col.key} className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1 opacity-0 hidden sm:block">Filter</label>
@@ -483,20 +466,24 @@ useEffect(() => {
                                         </td>
                                     )}
 
-                                    {columns.map((col) => (
+                                    {/* {columns.map((col) => (
                                             <td key={col.key} className="p-4 text-gray-700">
                                             {typeof row[col.key] === "object" ? JSON.stringify(row[col.key]) : (row[col.key] as string) || "-"}
                                         </td>
-                                    ))}
+                                    ))} */}
+
+                                    {columns.map((col) => (
+  <td key={col.key} className="p-4 text-gray-700">
+    {col.render
+      ? col.render(row)
+      : typeof row[col.key] === "object"
+      ? JSON.stringify(row[col.key])
+      : (row[col.key] as string) || "-"}
+  </td>
+))}
                                 </tr>
 
-                                // <tr key={idx} className="border-b last:border-0 hover:bg-blue-50 transition-colors">
-                                //     {columns.map((col) => (
-                                //         <td key={col.key} className="p-4 text-gray-700">
-                                //             {typeof row[col.key] === "object" ? JSON.stringify(row[col.key]) : (row[col.key] as string) || "-"}
-                                //         </td>
-                                //     ))}
-                                // </tr>
+                              
                             ))
                         )}
                         {selectedRows.length > 0 && (

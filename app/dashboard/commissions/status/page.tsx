@@ -31,6 +31,7 @@ export default function StatusPage() {
       </div>
       <Tables
         title="Debit Payment Status"
+        showAgentFilter={true}
         endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/debit-history`}
         transform={(data: any[]) =>
           data.map((row) => ({

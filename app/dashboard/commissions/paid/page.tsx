@@ -21,6 +21,7 @@ export default function PaidPage() {
       </div>
       <Tables
         title="Paid Commissions"
+        showAgentFilter={true}
         endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/paid/`}
     
    columns={[

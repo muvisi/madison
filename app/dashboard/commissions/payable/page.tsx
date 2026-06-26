@@ -18,6 +18,7 @@ export default function PayablePage() {
         title="Commissions Payable"
         endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/records/`}
         showDateFilter
+        showAgentFilter={true}
         exactDateKey="push_note_request_date"
         columns={[
           { key: "dr_cr_note_number", label: "Debit Note" },

@@ -133,6 +133,7 @@ export default function PaidPage() {
         displayCheckBoxes
         showDateFilter
         exactDateKey="receipt_date"
+        showAgentFilter={true}
         onSelectionChange={(rows: any[]) => setSelectedRows(rows)}
         columns={[
           { key: "push_note_code", label: "Push Note" },
