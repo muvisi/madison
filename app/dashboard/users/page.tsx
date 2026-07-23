@@ -1,736 +1,488 @@
-// "use client";
-
-// import { useState, FormEvent } from "react";
-// import { useMutation, useQuery, useQueryClient, UseMutationResult } from "@tanstack/react-query";
-// import { FiCheckCircle, FiXCircle, FiUserPlus, FiEye, FiX } from "react-icons/fi";
-
-// interface User {
-//   uuid: string;
-//   username: string;
-//   email: string;
-//   first_name?: string;
-//   last_name?: string;
-// }
-
-// interface UserFormData {
-//   username?: string;
-//   email?: string;
-//   password?: string;
-//   first_name?: string;
-//   last_name?: string;
-// }
-
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-// // ---------------- API CALLS ----------------
-// const addUser = async (user: UserFormData): Promise<User> => {
-//   const res = await fetch(`${API_BASE_URL}/api/account/users/`, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(user),
-//   });
-//   if (!res.ok) {
-//     const data = await res.json().catch(() => null);
-//     throw new Error(data ? JSON.stringify(data) : res.statusText);
-//   }
-//   return res.json();
-// };
-
-// const updateUser = async (uuid: string, user: UserFormData): Promise<User> => {
-//   const res = await fetch(`${API_BASE_URL}/api/account/users/${uuid}/`, {
-//     method: "PATCH",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(user),
-//   });
-//   if (!res.ok) {
-//     const data = await res.json().catch(() => null);
-//     throw new Error(data ? JSON.stringify(data) : res.statusText);
-//   }
-//   return res.json();
-// };
-
-// const fetchUsers = async (): Promise<User[]> => {
-//   const res = await fetch(`${API_BASE_URL}/api/account/users/`);
-//   if (!res.ok) throw new Error("Failed to fetch users");
-//   return res.json();
-// };
-
-// const deleteUser = async (uuid: string): Promise<void> => {
-//   const res = await fetch(`${API_BASE_URL}/api/account/users/${uuid}/`, { method: "DELETE" });
-//   if (!res.ok) throw new Error("Failed to delete user");
-// };
-
-// // ---------------- COMPONENT ----------------
-// export default function UsersPage() {
-//   const queryClient = useQueryClient();
-//   const [activeTab, setActiveTab] = useState<"add" | "list">("add");
-//   const [formData, setFormData] = useState<UserFormData>({
-//     username: "",
-//     email: "",
-//     password: "",
-//     first_name: "",
-//     last_name: "",
-//   });
-
-//   // ---------- Edit Modal State ----------
-//   const [isEditOpen, setIsEditOpen] = useState(false);
-//   const [editUserId, setEditUserId] = useState<string | null>(null);
-
-//   // ---------- Add Mutation ----------
-//   const addMutation: UseMutationResult<User, Error, UserFormData> = useMutation({
-//     mutationFn: addUser,
-//     onSuccess: () => {
-//       setFormData({ username: "", email: "", password: "", first_name: "", last_name: "" });
-//       queryClient.invalidateQueries({ queryKey: ["users"] });
-//     },
-//   });
-
-//   // ---------- Update Mutation ----------
-//   const updateMutation = useMutation({
-//     mutationFn: ({ uuid, data }: { uuid: string; data: UserFormData }) => updateUser(uuid, data),
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ["users"] });
-//       setIsEditOpen(false);
-//       setEditUserId(null);
-//       setFormData({ username: "", email: "", password: "", first_name: "", last_name: "" });
-//     },
-//   });
-
-//   // ---------- Delete Mutation ----------
-//   const deleteMutation = useMutation({
-//     mutationFn: deleteUser,
-//     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
-//   });
-
-//   // ---------- Fetch Users ----------
-//   const { data: users, isLoading, isError } = useQuery<User[], Error>({
-//     queryKey: ["users"],
-//     queryFn: fetchUsers,
-//     enabled: activeTab === "list",
-//   });
-
-//   // ---------- Handlers ----------
-//   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     setFormData({ ...formData, [e.target.name]: e.target.value });
-//   };
-
-//   const handleSubmitAdd = (e: FormEvent) => {
-//     e.preventDefault();
-//     addMutation.mutate(formData);
-//   };
-
-//   const handleSubmitEdit = (e: FormEvent) => {
-//     e.preventDefault();
-//     if (editUserId !== null) {
-//       updateMutation.mutate({ uuid: editUserId, data: formData });
-//     }
-//   };
-
-//   const openEditModal = (user: User) => {
-//     setEditUserId(user.uuid);
-//     setFormData({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name });
-//     setIsEditOpen(true);
-//   };
-
-//   return (
-//     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-gray-100">
-//       {/* Tabs */}
-//       <div className="flex justify-center mb-10 space-x-4">
-//         {["add", "list"].map((tab) => (
-//           <button
-//             key={tab}
-//             onClick={() => setActiveTab(tab as "add" | "list")}
-//             className={`px-6 py-2 rounded-full font-semibold transition-colors duration-300 ${
-//               activeTab === tab
-//                 ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-//                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-//             }`}
-//           >
-//             {tab === "add" ? "Add User" : "User List"}
-//           </button>
-//         ))}
-//       </div>
-
-//       {/* ---------- Add User Tab ---------- */}
-//       {activeTab === "add" && (
-//         <div className="max-w-md mx-auto bg-white p-10 rounded-2xl shadow-2xl border border-gray-200">
-//           <div className="flex items-center mb-6">
-//             <FiUserPlus className="text-blue-600 text-3xl mr-3" />
-//             <h2 className="text-3xl font-bold text-gray-800">Add New User</h2>
-//           </div>
-
-//           {addMutation.isError && (
-//             <div className="flex items-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-//               <FiXCircle className="mr-2 text-xl" />
-//               <span>Error: {addMutation.error?.message}</span>
-//             </div>
-//           )}
-//           {addMutation.isSuccess && (
-//             <div className="flex items-center bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-//               <FiCheckCircle className="mr-2 text-xl" />
-//               <span>User created successfully!</span>
-//             </div>
-//           )}
-
-//           <form onSubmit={handleSubmitAdd} className="space-y-5">
-//             {["username", "email", "password", "first_name", "last_name"].map((field) => (
-//               <div key={field}>
-//                 <label className="block text-gray-700 mb-1 capitalize">{field.replace("_", " ")}</label>
-//                 <input
-//                   type={field === "password" ? "password" : "text"}
-//                   name={field}
-//                   value={(formData as any)[field] || ""}
-//                   onChange={handleChange}
-//                   className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-//                   required={["username", "email", "password"].includes(field)}
-//                 />
-//               </div>
-//             ))}
-
-//             <button
-//               type="submit"
-//               disabled={addMutation.status === "pending"}
-//               className={`w-full py-3 rounded-xl text-white font-bold text-lg transition-all duration-300 ${
-//                 addMutation.status === "pending"
-//                   ? "bg-blue-300 cursor-not-allowed"
-//                   : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105"
-//               }`}
-//             >
-//               {addMutation.status === "pending" ? "Creating..." : "Add User"}
-//             </button>
-//           </form>
-//         </div>
-//       )}
-
-//       {/* ---------- User List Tab ---------- */}
-//       {activeTab === "list" && (
-//         <div className="max-w-5xl mx-auto bg-white p-8 rounded-2xl shadow-2xl border border-gray-200">
-//           <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">User List</h2>
-
-//           {isLoading && <p className="text-gray-500 text-center">Loading users...</p>}
-//           {isError && <p className="text-red-500 text-center">Failed to fetch users</p>}
-
-//           <div className="overflow-x-auto">
-//             <table className="w-full border-collapse border border-gray-200 text-left">
-//               <thead className="bg-gray-100">
-//                 <tr>
-//                   {["Username", "Email", "First Name", "Last Name", "Actions"].map((head) => (
-//                     <th key={head} className="border-b px-4 py-3 text-gray-700">
-//                       {head}
-//                     </th>
-//                   ))}
-//                 </tr>
-//               </thead>
-//               <tbody>
-//                 {users?.map((user, idx) => (
-//                   <tr
-//                     key={user.uuid}
-//                     className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 transition`}
-//                   >
-//                     <td className="px-4 py-2">{user.username}</td>
-//                     <td className="px-4 py-2">{user.email}</td>
-//                     <td className="px-4 py-2">{user.first_name}</td>
-//                     <td className="px-4 py-2">{user.last_name}</td>
-//                     <td className="px-4 py-2 flex space-x-2">
-//                       <button
-//                         onClick={() => openEditModal(user)}
-//                         className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-//                       >
-//                         <FiEye />
-//                       </button>
-//                       <button
-//                         onClick={() => deleteMutation.mutate(user.uuid)}
-//                         className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-//                       >
-//                         Delete
-//                       </button>
-//                     </td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* ---------- Edit Modal ---------- */}
-//       {isEditOpen && (
-//         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-//           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
-//             <button
-//               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-//               onClick={() => setIsEditOpen(false)}
-//             >
-//               <FiX size={24} />
-//             </button>
-
-//             <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit User</h2>
-//             <form onSubmit={handleSubmitEdit} className="space-y-4">
-//               {["username", "email", "first_name", "last_name"].map((field) => (
-//                 <div key={field}>
-//                   <label className="block text-gray-700 mb-1 capitalize">{field.replace("_", " ")}</label>
-//                   <input
-//                     type="text"
-//                     name={field}
-//                     value={(formData as any)[field] || ""}
-//                     onChange={handleChange}
-//                     className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-//                     required
-//                   />
-//                 </div>
-//               ))}
-
-//               <button
-//                 type="submit"
-//                 disabled={updateMutation.status === "pending"}
-//                 className={`w-full py-3 rounded-xl text-white font-bold text-lg transition-all duration-300 ${
-//                   updateMutation.status === "pending"
-//                     ? "bg-blue-300 cursor-not-allowed"
-//                     : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105"
-//                 }`}
-//               >
-//                 {updateMutation.status === "pending" ? "Updating..." : "Update User"}
-//               </button>
-//             </form>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
-import { useQuery, useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
-import { FiCheckCircle, FiXCircle, FiUserPlus, FiEye, FiX } from "react-icons/fi";
+import { FormEvent, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import {
+  FiEdit2,
+  FiLock,
+  FiPlus,
+  FiSearch,
+  FiShield,
+  FiTrash2,
+  FiUserCheck,
+  FiUsers,
+  FiX,
+} from "react-icons/fi";
+import { getAccessToken } from "@/src/services/auth";
 
 interface User {
   uuid: string;
   username: string;
   email: string;
-  password?: string;
   first_name?: string;
   last_name?: string;
-  department?:string;
-
+  department?: string;
 }
 
 interface UserFormData {
-  username?: string;
+  username: string;
+  email: string;
   password?: string;
-  email?: string;
+  first_name: string;
+  last_name: string;
+  department: string;
   login_method?: string;
-  first_name?: string;
-  last_name?: string;
-  department?:string;
 }
 
- const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const emptyForm: UserFormData = {
+  username: "",
+  email: "",
+  password: "",
+  first_name: "",
+  last_name: "",
+  department: "",
+  login_method: "",
+};
 
-// const API_BASE_URL = process.env.NEXT_USER_API_URL;
+const apiHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${getAccessToken()}`,
+});
 
-// ---------------- API CALLS ----------------
 const fetchUsers = async (): Promise<User[]> => {
-  const res = await fetch(`${API_BASE_URL}/api/account/users/`);
-  if (!res.ok) throw new Error("Failed to fetch users");
-  const data = await res.json();
-  // Ensure it always returns an array
+  const response = await fetch(`${API_BASE_URL}/api/account/users/`, {
+    headers: apiHeaders(),
+  });
+  if (!response.ok) throw new Error("Unable to load users");
+  const data = await response.json();
   return Array.isArray(data) ? data : data.results || [];
 };
 
-const addUser = async (user: UserFormData): Promise<User> => {
-  const res = await fetch(`${API_BASE_URL}/api/account/users/`, {
+const createUser = async (user: UserFormData): Promise<User> => {
+  const payload = { ...user };
+  if (payload.login_method === "ldap") delete payload.password;
+  const response = await fetch(`${API_BASE_URL}/api/account/users/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(user),
+    headers: apiHeaders(),
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data ? JSON.stringify(data) : res.statusText);
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.detail || "Unable to create user");
   }
-  return res.json();
+  return response.json();
 };
 
 const updateUser = async (uuid: string, user: UserFormData): Promise<User> => {
-  const res = await fetch(`${API_BASE_URL}/api/account/user/update/${uuid}/`, {
+  const response = await fetch(`${API_BASE_URL}/api/account/user/update/${uuid}/`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: apiHeaders(),
     body: JSON.stringify(user),
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data ? JSON.stringify(data) : res.statusText);
-  }
-  return res.json();
+  if (!response.ok) throw new Error("Unable to update user");
+  return response.json();
 };
 
-const deleteUser = async (uuid: string): Promise<void> => {
-  const res = await fetch(`${API_BASE_URL}/api/account/users/${uuid}/`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete user");
+const deleteUser = async (uuid: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/account/users/${uuid}/`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${getAccessToken()}` },
+  });
+  if (!response.ok) throw new Error("Unable to delete user");
 };
 
-// ---------------- COMPONENT ----------------
+const Field = ({
+  label,
+  name,
+  value,
+  onChange,
+  type = "text",
+  required = false,
+}: {
+  label: string;
+  name: keyof UserFormData;
+  value: string;
+  onChange: (name: keyof UserFormData, value: string) => void;
+  type?: string;
+  required?: boolean;
+}) => (
+  <div>
+    <label className="mb-1.5 block text-xs font-semibold text-slate-600">{label}</label>
+    <input
+      type={type}
+      value={value}
+      onChange={(event) => onChange(name, event.target.value)}
+      required={required}
+      className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+    />
+  </div>
+);
+
 export default function UsersPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"add" | "list">("add");
-  const [formData, setFormData] = useState<UserFormData>({
-    username: "",
-    email: "",
-    password: "",
-    first_name: "",
-    last_name: "",
-    department:"",
-    login_method: "",
-  });
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [activeTab, setActiveTab] = useState<"directory" | "create">("directory");
+  const [search, setSearch] = useState("");
+  const [form, setForm] = useState<UserFormData>(emptyForm);
+  const [editing, setEditing] = useState<User | null>(null);
 
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editUserId, setEditUserId] = useState<string | null>(null);
-  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-
-  // ---------- Fetch current user ----------
   useEffect(() => {
-    const username = localStorage.getItem("username");
-    setCurrentUsername(username);
+    setIsAdmin(localStorage.getItem("username") === "admin");
+    setSessionChecked(true);
   }, []);
 
- useEffect(() => {
-  if (formData.login_method === "ldap") {
-    setFormData((prev: any) => ({
-      ...prev,
-      password: "",
-    }));
-    setShowPassword(false);
-  }
-}, [formData.login_method]);
-
-  // ---------- Add Mutation ----------
-  const addMutation: UseMutationResult<User, Error, UserFormData> = useMutation({
-    mutationFn: addUser,
-    onSuccess: () => {
-      setFormData({ username: "", email: "", first_name: "", last_name: "", password: "", department:"" });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
-  });
-
-  // ---------- Update Mutation ----------
-  const updateMutation = useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: UserFormData }) => updateUser(uuid, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      setIsEditOpen(false);
-      setEditUserId(null);
-      setFormData({ username: "", email: "", first_name: "", last_name: "", department:""});
-    },
-  });
-
-  // ---------- Delete Mutation ----------
-  const deleteMutation = useMutation({
-    mutationFn: deleteUser,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
-  });
-
-  // ---------- Fetch Users ----------
-  const { data: users, isLoading, isError } = useQuery<User[], Error>({
+  const usersQuery = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
-    enabled: activeTab === "list" && currentUsername === "admin",
+    enabled: sessionChecked && isAdmin,
   });
 
-  // ---------- Handlers ----------
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   setFormData({ ...formData, [e.target.name]: e.target.value });
-  // };
+  const createMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setForm(emptyForm);
+      setActiveTab("directory");
+      toast.success("User account created");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
-  const handleChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-) => {
-  const { name, value } = e.target;
+  const updateMutation = useMutation({
+    mutationFn: ({ uuid, data }: { uuid: string; data: UserFormData }) =>
+      updateUser(uuid, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setEditing(null);
+      setForm(emptyForm);
+      toast.success("User account updated");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
-  setFormData((prev: any) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
+  const deleteMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("User account removed");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
+  const filteredUsers = (usersQuery.data || []).filter((user) =>
+    [user.username, user.email, user.first_name, user.last_name, user.department]
+      .join(" ")
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
 
-
-  const handleSubmitAdd = (e: FormEvent) => {
-  e.preventDefault();
-
-  const payload: any = {
-    username: formData.username,
-    email: formData.email,
-    first_name: formData.first_name,
-    last_name: formData.last_name,
-    login_method: formData.login_method,
-    department: formData.department,
+  const updateField = (name: keyof UserFormData, value: string) => {
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === "login_method" && value === "ldap" ? { password: "" } : {}),
+    }));
   };
 
-  if (
-    formData.login_method === "local" &&
-    formData.password?.trim()
-  ) {
-    payload.password = formData.password;
+  const submitCreate = (event: FormEvent) => {
+    event.preventDefault();
+    createMutation.mutate(form);
+  };
+
+  const openEdit = (user: User) => {
+    setForm({
+      username: user.username,
+      email: user.email,
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      department: user.department || "",
+    });
+    setEditing(user);
+  };
+
+  if (!sessionChecked) {
+    return (
+      <div className="flex min-h-[55vh] items-center justify-center">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-blue-100 border-t-[#0c477d]" />
+      </div>
+    );
   }
 
-  addMutation.mutate(payload);
-};
-
-  const handleSubmitEdit = (e: FormEvent) => {
-    e.preventDefault();
-    if (editUserId !== null) {
-      updateMutation.mutate({ uuid: editUserId, data: formData });
-    }
-  };
-
-  const openEditModal = (user: User) => {
-    setEditUserId(user.uuid);
-    setFormData({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name, department: user.department });
-    setIsEditOpen(true);
-  };
-
-  // ---------- Render only if admin ----------
-  if (currentUsername !== "admin") {
+  if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-        Access denied. Admins only.
+      <div className="mx-auto max-w-xl rounded-2xl border border-amber-200 bg-white p-8 text-center">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-amber-50 text-xl text-amber-700">
+          <FiLock />
+        </span>
+        <h2 className="mt-4 text-xl font-semibold text-slate-900">Administrator access required</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          User accounts and access assignments can only be managed by an administrator.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-gray-100">
-      {/* Tabs */}
-      <div className="flex justify-center mb-10 space-x-4">
-        {["add", "list"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab as "add" | "list")}
-            className={`px-6 py-2 rounded-full font-semibold transition-colors duration-300 ${
-              activeTab === tab
-                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            {tab === "add" ? "Add User" : "User List"}
-          </button>
-        ))}
-      </div>
-
-      {/* ---------- Add User Tab ---------- */}
-      {activeTab === "add" && (
-        <div className="max-w-md mx-auto bg-white p-10 rounded-2xl shadow-2xl border border-gray-200">
-          <div className="flex items-center mb-6">
-            <FiUserPlus className="text-blue-600 text-3xl mr-3" />
-            <h2 className="text-3xl font-bold text-gray-800">Add New User</h2>
-          </div>
-
-          {addMutation.isError && (
-            <div className="flex items-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              <FiXCircle className="mr-2 text-xl" />
-              <span>Error: {addMutation.error?.message}</span>
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="flex flex-col gap-5 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-50 text-xl text-blue-700">
+              <FiShield />
+            </span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#2b6b9c]">
+                Administration
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
+                Users & Access
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Create accounts, assign departments, and maintain application access.
+              </p>
             </div>
-          )}
-          {addMutation.isSuccess && (
-            <div className="flex items-center bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-              <FiCheckCircle className="mr-2 text-xl" />
-              <span>User created successfully!</span>
-            </div>
-          )}
-
-        
-
-          <form onSubmit={handleSubmitAdd} className="space-y-5">
-
-      {/* Login Method */}
-      <div>
-        <label className="block text-gray-700 mb-1">Login Method</label>
-
-        <select
-          name="login_method"
-          value={formData.login_method || ""}
-          onChange={handleChange}
-          className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-          required
-        >
-          <option value="">Select Login Method</option>
-          <option value="ldap">LDAP Madison</option>
-          <option value="local">Local</option>
-        </select>
-      </div>
-
-      {/* Dynamic Fields */}
-      {["username", "email", "first_name", "last_name", "password"]
-        .filter((field) => {
-        
-          if (field === "password" && formData.login_method === "ldap") {
-            return false;
-          }
-          return true;
-        })
-        .map((field) => (
-          <div key={field}>
-            <label className="block text-gray-700 mb-1 capitalize">
-              {field.replace("_", " ")}
-            </label>
-
-            <input
-              type={field === "password" ? "password" : "text"}
-              name={field}
-              value={(formData as any)[field] || ""}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-              required={
-                ["username", "email", "password"].includes(field) &&
-                formData.login_method === "local"
-              }
-            />
           </div>
-        ))}
-
-      {/* Department */}
-      <div>
-        <label className="block text-gray-700 mb-1">Department</label>
-
-        <select
-          name="department"
-          value={formData.department || ""}
-          onChange={handleChange}
-          className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-          required
-        >
-          <option value="">Select Department</option>
-          <option value="underwriting">Underwriting</option>
-          <option value="finance">Finance</option>
-        </select>
-      </div>
-
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={addMutation.status === "pending"}
-        className={`w-full py-3 rounded-xl text-white font-bold text-lg transition-all duration-300 ${
-          addMutation.status === "pending"
-            ? "bg-blue-300 cursor-not-allowed"
-            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105"
-        }`}
-      >
-        {addMutation.status === "pending" ? "Creating..." : "Add User"}
-      </button>
-    </form>
+          <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <button
+              onClick={() => setActiveTab("directory")}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                activeTab === "directory" ? "bg-white text-[#0c477d] shadow-sm" : "text-slate-500"
+              }`}
+            >
+              User directory
+            </button>
+            <button
+              onClick={() => setActiveTab("create")}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                activeTab === "create" ? "bg-white text-[#0c477d] shadow-sm" : "text-slate-500"
+              }`}
+            >
+              Add account
+            </button>
+          </div>
         </div>
-      )}
+      </section>
 
-      {/* ---------- User List Tab ---------- */}
-      {activeTab === "list" && (
-        <div className="max-w-5xl mx-auto bg-white p-8 rounded-2xl shadow-2xl border border-gray-200">
-          <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">User List</h2>
-
-          {isLoading && <p className="text-gray-500 text-center">Loading users...</p>}
-          {isError && <p className="text-red-500 text-center">Failed to fetch users</p>}
-
+      {activeTab === "directory" ? (
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-slate-900">User directory</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                {(usersQuery.data || []).length} registered account{(usersQuery.data || []).length === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="relative w-full sm:w-72">
+              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search users"
+                className="h-10 w-full rounded-xl border border-slate-300 pl-10 pr-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+              />
+            </div>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-200 text-left">
-              <thead className="bg-gray-100">
-                <tr>
-                  {["Username", "Email", "First Name", "Last Name","Department", "Actions"].map((head) => (
-                    <th key={head} className="border-b px-4 py-3 text-gray-700">
-                      {head}
-                    </th>
+            <table className="w-full min-w-[800px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-xs uppercase tracking-[0.08em] text-slate-500">
+                  {["User", "Email", "Department", "Account", "Actions"].map((heading) => (
+                    <th key={heading} className="px-5 py-4 font-semibold">{heading}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
-                {(Array.isArray(users) ? users : []).map((user, idx) => (
-                  <tr
-                    key={user.uuid}
-                    className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 transition`}
-                  >
-                    <td className="px-4 py-2">{user.username}</td>
-                    <td className="px-4 py-2">{user.email}</td>
-                    <td className="px-4 py-2">{user.first_name}</td>
-                    <td className="px-4 py-2">{user.last_name}</td>
-                    <td className="px-4 py-2">{user.department}</td>
-                    <td className="px-4 py-2 flex space-x-2">
-                      <button
-                        onClick={() => openEditModal(user)}
-                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                      >
-                        <FiEye />
-                      </button>
-                      <button
-                        onClick={() => deleteMutation.mutate(user.uuid)}
-                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-slate-100">
+                {usersQuery.isLoading
+                  ? Array.from({ length: 5 }).map((_, index) => (
+                      <tr key={index}>
+                        <td colSpan={5} className="px-5 py-3">
+                          <div className="h-10 animate-pulse rounded-lg bg-slate-100" />
+                        </td>
+                      </tr>
+                    ))
+                  : filteredUsers.map((user) => (
+                      <tr key={user.uuid} className="transition hover:bg-blue-50/40">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#0c477d] text-xs font-semibold text-white">
+                              {(user.first_name?.[0] || user.username[0] || "U").toUpperCase()}
+                              {(user.last_name?.[0] || "").toUpperCase()}
+                            </span>
+                            <span>
+                              <span className="block font-semibold text-slate-800">
+                                {[user.first_name, user.last_name].filter(Boolean).join(" ") || user.username}
+                              </span>
+                              <span className="block text-xs text-slate-500">@{user.username}</span>
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-slate-600">{user.email || "—"}</td>
+                        <td className="px-5 py-4">
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-600">
+                            {user.department || "Unassigned"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                            <FiUserCheck />
+                            Active
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => openEdit(user)}
+                              aria-label={`Edit ${user.username}`}
+                              className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                            >
+                              <FiEdit2 />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Remove the account for ${user.username}?`)) {
+                                  deleteMutation.mutate(user.uuid);
+                                }
+                              }}
+                              aria-label={`Delete ${user.username}`}
+                              className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {/* ---------- Edit Modal ---------- */}
-      {isEditOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
-            <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-              onClick={() => setIsEditOpen(false)}
-            >
-              <FiX size={24} />
-            </button>
-
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit User</h2>
-            <form onSubmit={handleSubmitEdit} className="space-y-4">
-              {["username", "email", "first_name", "last_name"].map((field) => (
-                <div key={field}>
-                  <label className="block text-gray-700 mb-1 capitalize">{field.replace("_", " ")}</label>
-                  <input
-                    type="text"
-                    name={field}
-                    value={(formData as any)[field] || ""}
-                    onChange={handleChange}
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                    required
-                  />
-                </div>
-              ))}
+        </section>
+      ) : (
+        <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
+          <form onSubmit={submitCreate} className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
+                <FiPlus />
+              </span>
               <div>
-                <label className="block text-gray-700 mb-1">Department</label>
-
+                <h3 className="font-semibold text-slate-900">Create user account</h3>
+                <p className="text-sm text-slate-500">Enter identity and access details.</p>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Login method</label>
                 <select
-                    name="department"
-                    value={(formData as any).department || ""}
-                    onChange={handleChange}
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                    required
+                  value={form.login_method || ""}
+                  onChange={(event) => updateField("login_method", event.target.value)}
+                  required
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                >
+                  <option value="">Select login method</option>
+                  <option value="ldap">Madison network account</option>
+                  <option value="local">Local application account</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Department</label>
+                <select
+                  value={form.department}
+                  onChange={(event) => updateField("department", event.target.value)}
+                  required
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
                 >
                   <option value="">Select department</option>
                   <option value="underwriting">Underwriting</option>
                   <option value="finance">Finance</option>
                 </select>
               </div>
-
-
-
+              <Field label="Username" name="username" value={form.username} onChange={updateField} required />
+              <Field label="Email address" name="email" value={form.email} onChange={updateField} type="email" required />
+              <Field label="First name" name="first_name" value={form.first_name} onChange={updateField} />
+              <Field label="Last name" name="last_name" value={form.last_name} onChange={updateField} />
+              {form.login_method === "local" && (
+                <div className="sm:col-span-2">
+                  <Field label="Temporary password" name="password" value={form.password || ""} onChange={updateField} type="password" required />
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end">
               <button
                 type="submit"
-                disabled={updateMutation.status === "pending"}
-                className={`w-full py-3 rounded-xl text-white font-bold text-lg transition-all duration-300 ${
-                  updateMutation.status === "pending"
-                    ? "bg-blue-300 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105"
-                }`}
+                disabled={createMutation.isPending}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#0c477d] px-5 text-sm font-semibold text-white transition hover:bg-[#093a68] disabled:opacity-60"
               >
-                {updateMutation.status === "pending" ? "Updating..." : "Update User"}
+                {createMutation.isPending ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <FiPlus />
+                )}
+                Create account
               </button>
+            </div>
+          </form>
+          <aside className="rounded-2xl bg-[#0c477d] p-6 text-white">
+            <FiShield className="text-2xl" />
+            <h3 className="mt-5 font-semibold">Access governance</h3>
+            <p className="mt-2 text-sm leading-6 text-blue-100/75">
+              Assign each account to the correct department. Finance access controls commission authorization workflows.
+            </p>
+          </aside>
+        </section>
+      )}
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+              <div>
+                <h3 className="font-semibold text-slate-900">Edit user account</h3>
+                <p className="mt-1 text-sm text-slate-500">Update identity and department assignment.</p>
+              </div>
+              <button
+                onClick={() => setEditing(null)}
+                aria-label="Close edit user dialog"
+                className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
+              >
+                <FiX />
+              </button>
+            </div>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                updateMutation.mutate({ uuid: editing.uuid, data: form });
+              }}
+              className="p-6"
+            >
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Username" name="username" value={form.username} onChange={updateField} required />
+                <Field label="Email address" name="email" value={form.email} onChange={updateField} type="email" required />
+                <Field label="First name" name="first_name" value={form.first_name} onChange={updateField} />
+                <Field label="Last name" name="last_name" value={form.last_name} onChange={updateField} />
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">Department</label>
+                  <select
+                    value={form.department}
+                    onChange={(event) => updateField("department", event.target.value)}
+                    required
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                  >
+                    <option value="">Select department</option>
+                    <option value="underwriting">Underwriting</option>
+                    <option value="finance">Finance</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-3">
+                <button type="button" onClick={() => setEditing(null)} className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700">
+                  Cancel
+                </button>
+                <button type="submit" disabled={updateMutation.isPending} className="h-10 rounded-xl bg-[#0c477d] px-5 text-sm font-semibold text-white disabled:opacity-60">
+                  {updateMutation.isPending ? "Saving…" : "Save changes"}
+                </button>
+              </div>
             </form>
           </div>
         </div>

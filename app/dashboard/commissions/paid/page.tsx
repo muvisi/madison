@@ -1,32 +1,31 @@
 "use client";
 
-import { useState } from "react";
 import Tables from "@/src/components/Tables";
-import { FaArrowLeft } from "react-icons/fa";
-import Link from "next/link";
+import { FiCheckCircle } from "react-icons/fi";
 
 export default function PaidPage() {
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-    return (
-    <div className="overflow-x-auto">
-       <div className="mb-4">
-        <Link
-          href="/dashboard/commissions"
-          className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded flex items-center gap-2 inline-flex"
-        >
-          ← Back to dashboard
-        </Link>
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-lg text-emerald-700">
+          <FiCheckCircle />
+        </span>
+        <div>
+          <h3 className="font-semibold text-slate-900">Paid Commission History</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Access completed broker payments and export a structured, audit-ready commission report.
+          </p>
+        </div>
       </div>
       <Tables
-        title="Paid Commissions"
+        title="Paid commissions"
+        exportVariant="healthcare-commissions"
+        exportReportTitle="Paid Healthcare Commissions"
         showDateFilter
         exactDateKey="paid_at"
-        showAgentFilter={true}
+        showAgentFilter
         endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/paid/`}
-    
-   columns={[
+        columns={[
           { key: "push_note_code", label: "Push Note" },
           { key: "debit_code", label: "Debit Note" },
           { key: "payment_status", label: "Debit Status" },
@@ -35,7 +34,7 @@ export default function PaidPage() {
           { key: "broker_name", label: "Broker" },
           { key: "receipted_amount", label: "Receipted" },
           { key: "available_allocation", label: "Allocation" },
-          { key: "broker_commission", label: "Broker Comm" },
+          { key: "broker_commission", label: "Broker Commission" },
           { key: "withholding_tax", label: "WHT" },
           { key: "commission_payable", label: "Payable" },
           { key: "commission_status", label: "Commission Status" },
@@ -43,5 +42,5 @@ export default function PaidPage() {
         ]}
       />
     </div>
-    );
+  );
 }

@@ -1,9 +1,9 @@
-"use client";
-
-export default function Logo() {
+export default function Logo({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="text-3xl font-bold text-blue-600 text-center mb-6">
-      Madison
-    </div>
+    <img
+      src="/madison-group-logo.png"
+      alt="Madison Group"
+      className={compact ? "h-9 w-auto" : "h-auto w-52"}
+    />
   );
 }

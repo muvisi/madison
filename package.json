@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",
+    "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "lightningcss": "^1.32.0",
     "next": "16.1.6",

@@ -1,89 +1,46 @@
 "use client";
 
-import Sidebar from "../../src/components/Sidebar";
-import Topbar from "../../src/components/Topbar";
 import { ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Sidebar from "@/src/components/Sidebar";
+import Topbar from "@/src/components/Topbar";
 
-type DashboardLayoutProps = {
-  children: ReactNode;
-};
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
-  // ---------- Auth Guard ----------
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.replace("/"); // Redirect if not authenticated
-    } else {
-      setLoading(false);
+    if (!localStorage.getItem("accessToken")) {
+      router.replace("/");
+      return;
     }
+    setCheckingSession(false);
   }, [router]);
 
-  if (loading) {
+  if (checkingSession) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-blue-600 text-lg font-semibold">Checking authentication...</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#0c477d]/20 border-t-[#0c477d]" />
+          Preparing your workspace…
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen bg-gray-100 overflow-hidden">
-      {/* Background triangles */}
-      <div className="absolute inset-0 -z-10">
-        {Array.from({ length: 40 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-10 h-10 md:w-12 md:h-12 bg-gray-400/20 transform rotate-[45deg] animate-float transition-colors duration-300 hover:bg-blue-300/30"
-            style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 5}s`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Sticky Topbar */}
-      <div className="sticky top-0 z-20">
-        <Topbar />
-      </div>
-
-      {/* Main layout: Sidebar + content */}
-      <div className="flex">
-        {/* Sidebar below Topbar */}
-        <Sidebar />
-
-        {/* Main content */}
-        <main className="flex-1 p-6 overflow-auto">
+    <div className="min-h-screen bg-[#f4f7fa] text-slate-900">
+      <Sidebar
+        mobileOpen={mobileNavigationOpen}
+        onMobileClose={() => setMobileNavigationOpen(false)}
+      />
+      <div className="min-h-screen lg:pl-[272px]">
+        <Topbar onMenuClick={() => setMobileNavigationOpen(true)} />
+        <main className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
           {children}
         </main>
       </div>
-
-      {/* Triangle animation */}
-      <style jsx>{`
-        @keyframes float {
-          0% {
-            transform: translateY(0px) rotate(45deg);
-          }
-          50% {
-            transform: translateY(-15px) rotate(45deg);
-          }
-          100% {
-            transform: translateY(0px) rotate(45deg);
-          }
-        }
-        .animate-float {
-          animation-name: float;
-          animation-iteration-count: infinite;
-          animation-timing-function: ease-in-out;
-        }
-      `}</style>
     </div>
   );
 }
