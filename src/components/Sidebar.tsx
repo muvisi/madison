@@ -52,6 +52,16 @@ const navItems = [
   { name: "Copay Logs", path: "/dashboard/reports/copays" },
   { name: "Commissions Payable", path: "/dashboard/commissions" },
   { name: "eTIMS Debit/Credit Status", path: "/dashboard/etims" },
+
+  {
+    name: "Care Management", 
+    path: "/dashboard/caremanagement",
+    subItems: [
+      { name: "LOU Status Report", path: "/dashboard/caremanagement/lou-report"},
+  
+    ],
+  },
+  // { name: "LOU Status Report", path: "/dashboard/caremanagement/lou-report" },
 ];
 
 export default function Sidebar() {
