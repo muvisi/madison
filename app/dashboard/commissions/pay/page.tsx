@@ -2,20 +2,102 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { FiCreditCard, FiLock } from "react-icons/fi";
+import { FiCalendar, FiCheckCircle, FiCreditCard, FiLock } from "react-icons/fi";
 import Tables from "@/src/components/Tables";
 import { getAccessToken } from "@/src/services/auth";
 import { useAccess } from "@/src/services/access";
 
 type CommissionRow = Record<string, unknown> & { debit_code?: string };
 
+const AUTHORIZATION_DAYS = new Set([1, 2, 15, 16]);
+
+function getNairobiDate() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date());
+
+  return Object.fromEntries(
+    parts
+      .filter(({ type }) => type !== "literal")
+      .map(({ type, value }) => [type, Number(value)])
+  ) as { year: number; month: number; day: number };
+}
+
+function getAuthorizationWindow() {
+  const { year, month, day } = getNairobiDate();
+  const isOpen = AUTHORIZATION_DAYS.has(day);
+
+  let nextYear = year;
+  let nextMonth = month;
+  let nextDay = 15;
+
+  if (day > 16) {
+    nextMonth += 1;
+    nextDay = 1;
+    if (nextMonth === 13) {
+      nextMonth = 1;
+      nextYear += 1;
+    }
+  } else if (day <= 2) {
+    nextDay = day;
+  }
+
+  const nextDate = new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Date.UTC(nextYear, nextMonth - 1, nextDay, 12)));
+
+  return { isOpen, nextDate };
+}
+
 export default function PayCommissionsPage() {
   const [selectedRows, setSelectedRows] = useState<CommissionRow[]>([]);
   const [processing, setProcessing] = useState(false);
   const isFinance = useAccess("finance");
+  const authorizationWindow = getAuthorizationWindow();
+
+  const showClosedWindowToast = () => {
+    toast.custom(
+      (notification) => (
+        <div
+          className={`flex max-w-md items-start gap-3 rounded-2xl border border-amber-200 bg-white p-4 shadow-xl transition ${
+            notification.visible ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+          }`}
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+            <FiCalendar />
+          </span>
+          <div>
+            <p className="font-semibold text-slate-900">Authorization window is closed</p>
+            <p className="mt-1 text-sm leading-5 text-slate-600">
+              Payments can only be authorized on the 1st, 2nd, 15th, and 16th of each
+              month. The next window opens on{" "}
+              <span className="font-semibold text-amber-700">
+                {authorizationWindow.nextDate}
+              </span>
+              .
+            </p>
+          </div>
+        </div>
+      ),
+      { duration: 6000 }
+    );
+  };
 
   const handlePay = async () => {
-    if (selectedRows.length === 0) return;
+    if (!getAuthorizationWindow().isOpen) {
+      showClosedWindowToast();
+      return;
+    }
+    if (selectedRows.length === 0) {
+      toast("Select at least one commission record to continue.", { icon: "☝️" });
+      return;
+    }
     if (
       !window.confirm(
         `Authorize payment for ${selectedRows.length} selected commission record${selectedRows.length === 1 ? "" : "s"}?`
@@ -66,14 +148,36 @@ export default function PayCommissionsPage() {
             <p className="mt-1 text-sm leading-6 text-slate-500">
               Select eligible records, review calculated values, and authorize broker commission payments.
             </p>
+            <div
+              className={`mt-3 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                authorizationWindow.isOpen
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-amber-50 text-amber-700"
+              }`}
+            >
+              {authorizationWindow.isOpen ? <FiCheckCircle /> : <FiCalendar />}
+              {authorizationWindow.isOpen
+                ? "Authorization window open today"
+                : `Next authorization date: ${authorizationWindow.nextDate}`}
+            </div>
           </div>
         </div>
 
         {isFinance ? (
           <button
             onClick={handlePay}
-            disabled={selectedRows.length === 0 || processing}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            disabled={processing}
+            aria-disabled={!authorizationWindow.isOpen || selectedRows.length === 0}
+            title={
+              authorizationWindow.isOpen
+                ? "Authorize selected commission payments"
+                : "Payment authorization is available only on the 1st, 2nd, 15th, and 16th"
+            }
+            className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:bg-slate-300 ${
+              authorizationWindow.isOpen
+                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                : "cursor-not-allowed border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+            }`}
           >
             {processing ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -82,7 +186,9 @@ export default function PayCommissionsPage() {
             )}
             {processing
               ? "Authorizing…"
-              : `Authorize payment${selectedRows.length ? ` (${selectedRows.length})` : ""}`}
+              : !authorizationWindow.isOpen
+                ? "Authorization closed"
+                : `Authorize payment${selectedRows.length ? ` (${selectedRows.length})` : ""}`}
           </button>
         ) : (
           <span className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">
