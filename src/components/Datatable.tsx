@@ -47,7 +47,7 @@ export default function DataTable<T>({
   return (
     <div className="mx-auto max-w-8xl">
       <div className="overflow-hidden rounded-lg border border-gray-300 bg-white shadow-sm">
-        <div className="max-h-[600px] overflow-auto">
+        <div className="max-h-150 overflow-auto">
           <table className="min-w-max border-collapse text-sm">
             {/* Header */}
             <thead className="sticky top-0 bg-blue-700 text-white">

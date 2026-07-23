@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import Datatable, { Column, LouReport } from "@/src/components/Datatable";
 import ReportFilters, { FilterField } from "@/src/components/ReportFilters";
 import { LOU_STATUS, LOU_STATUSES } from "@/src/constants/lou-status";
+import {
+  getLouStatusReport,
+  exportLouStatusReport,
+} from "@/src/services/lou-status.service";
 
 const filterFields: FilterField[] = [
   {
@@ -12,7 +16,7 @@ const filterFields: FilterField[] = [
     type: "text",
   },
   {
-    key: "customer",
+    key: "customerName",
     placeholder: "Customer",
     type: "text",
   },
@@ -152,7 +156,7 @@ export default function LouStatusReport() {
 
   const [filters, setFilters] = useState({
     memberNumber: "",
-    customer: "",
+    customerName: "",
     providerName: "",
     admissionStatus: "",
     dateAuthorised: "",
@@ -180,18 +184,22 @@ export default function LouStatusReport() {
       }
     });
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/care-management/lou-status-report?${params.toString()}`
-    );
+    // const response = await fetch(
+    //   `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/care-management/lou-status-report?${params.toString()}`
+    // );
 
-    if (!response.ok) {
-      throw new Error("Failed to load LOU Status Report");
-    }
-
-    const data = await response.json();
+    // if (!response.ok) {
+    //   throw new Error("Failed to load LOU Status Report");
+    // }
+    const data = await getLouStatusReport(params);
 
     setLouReports(data.items);
     setTotalPages(data.totalPages);
+
+    // const data = await response.json();
+
+    // setLouReports(data.items);
+    // setTotalPages(data.totalPages);
   } catch (error) {
     console.error(error);
     setLouReports([]);
@@ -222,7 +230,7 @@ export default function LouStatusReport() {
   const handleReset = () => {
     const resetFilters = {
     memberNumber: "",
-    customer: "",
+    customerName: "",
     providerName: "",
     admissionStatus: "",
     dateAuthorised: "",
@@ -250,15 +258,17 @@ const handleExport = async () => {
       }
     });
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/care-management/lou-status-report?${params.toString()}`
-    );
+    // const response = await fetch(
+    //   `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/care-management/lou-status-report?${params.toString()}`
+    // );
 
-    if (!response.ok) {
-      throw new Error("Failed to generate report");
-    }
+    // if (!response.ok) {
+    //   throw new Error("Failed to generate report");
+    // }
 
-    const result = await response.json();
+    // const result = await response.json();
+
+    const result = await exportLouStatusReport(params);
 
     if (!result.downloadUrl) {
       throw new Error("Download URL not returned.");

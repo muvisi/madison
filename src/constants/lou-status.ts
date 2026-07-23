@@ -2,8 +2,8 @@
 export const LOU_STATUS = {
   ADMITTED: "ADMITTED",
   DAY_CASE: "DAY CASE",
-  DISCHARGED: "Discharged",
-  SCHEDULED: "Scheduled",
+  DISCHARGED: "DISCHARGED",
+  SCHEDULED: "SCHEDULED",
 } as const;
 
 export interface LouStatus {
@@ -22,10 +22,10 @@ export const LOU_STATUSES: LouStatus[] = [
   },
   {
     value: LOU_STATUS.DISCHARGED,
-    label: "Discharged",
+    label: "DISCHARGED",
   },
   {
     value: LOU_STATUS.SCHEDULED,
-    label: "Scheduled",
+    label: "SCHEDULED",
   },
 ];
