@@ -605,6 +605,7 @@ export default function UsersPage() {
           <option value="">Select Department</option>
           <option value="underwriting">Underwriting</option>
           <option value="finance">Finance</option>
+          <option value="caremanagement">Care Management</option>
         </select>
       </div>
 

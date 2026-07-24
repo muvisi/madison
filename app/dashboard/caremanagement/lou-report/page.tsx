@@ -314,7 +314,7 @@ const handleExport = async () => {
   return (
     <div className="space-y-8">
       <h2 className="text-xl font-bold">
-      LOU Status Report
+      Daily Admissions Report
     </h2>
    
       <ReportFilters

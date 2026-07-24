@@ -47,17 +47,43 @@ const navItems = [
       { name: "Provider ❌", path: "/dashboard/reports/provider-failure" },
     ],
   },
-  { name: "Users", path: "/dashboard/users" },
-  { name: "API Logs", path: "/dashboard/reports/api-sync" },
-  { name: "Copay Logs", path: "/dashboard/reports/copays" },
-  { name: "Commissions Payable", path: "/dashboard/commissions" },
-  { name: "eTIMS Debit/Credit Status", path: "/dashboard/etims" },
+  // { name: "Users", path: "/dashboard/users" },
+  // { name: "API Logs", path: "/dashboard/reports/api-sync" },
+  // { name: "Copay Logs", path: "/dashboard/reports/copays" },
+  {
+    name: "Logs", 
+    path: "/dashboard/logs",
+    subItems: [
+        { name: "API Logs", path: "/dashboard/reports/api-sync" },
+        { name: "Copay Logs", path: "/dashboard/reports/copays" },
+  
+    ],
+  },
+   {
+    name: "Finance", 
+    path: "/dashboard/finance",
+    subItems: [
+        { name: "Commissions Payable", path: "/dashboard/commissions" },
+        { name: "eTIMS Debit/Credit Status", path: "/dashboard/etims" },
+  
+    ],
+  },
+  // { name: "Commissions Payable", path: "/dashboard/commissions" },
+  // { name: "eTIMS Debit/Credit Status", path: "/dashboard/etims" },
 
   {
     name: "Care Management", 
     path: "/dashboard/caremanagement",
     subItems: [
-      { name: "LOU Status Report", path: "/dashboard/caremanagement/lou-report"},
+      { name: "Daily Admissions Report", path: "/dashboard/caremanagement/lou-report"},
+  
+    ],
+  },
+    {
+    name: "User Management", 
+    path: "/dashboard/users",
+    subItems: [
+      { name: "Users", path: "/dashboard/users" },
   
     ],
   },
