@@ -1,569 +1,501 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import toast from "react-hot-toast";
-import { getAccessToken } from "@/src/services/auth";
+import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import Select from "react-select";
+import toast from "react-hot-toast";
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiDownload,
+  FiFilter,
+  FiRefreshCw,
+  FiSearch,
+} from "react-icons/fi";
+import { getAccessToken } from "@/src/services/auth";
+import { exportHealthcareCommissions } from "@/src/utils/exportHealthcareCommissions";
+
+type DataRow = Record<string, unknown>;
+type Column = {
+  key: string;
+  label: string;
+  render?: (row: DataRow) => React.ReactNode;
+};
 
 interface ReportTableProps {
-    title: string;
-    endpoint: string;
-    // columns: { key: string; label: string }[];
-    columns: {
-    key: string;
-    label: string;
-    render?: (row: any) => React.ReactNode;
-}[];
-    showDateFilter?: boolean;
-    exactDateKey?: string;
-    displayCheckBoxes?: boolean; 
-    transform?: (data: any[]) => any[];
-    hidePagination?: boolean;
-    showAgentFilter?: boolean;
-    onSelectionChange?: (rows: any[]) => void;
-    render?: (row: any) => React.ReactNode; 
-
+  title: string;
+  endpoint: string;
+  columns: Column[];
+  showDateFilter?: boolean;
+  exactDateKey?: string;
+  displayCheckBoxes?: boolean;
+  transform?: (data: DataRow[]) => DataRow[];
+  hidePagination?: boolean;
+  showAgentFilter?: boolean;
+  exportVariant?: "default" | "healthcare-commissions";
+  exportReportTitle?: string;
+  onSelectionChange?: (rows: DataRow[]) => void;
 }
 
 interface AgentOption {
-    value: string;
-    label: string;
+  value: string;
+  label: string;
 }
 
-export default function ReportTable({ title, endpoint, columns, showDateFilter, exactDateKey, displayCheckBoxes, hidePagination, onSelectionChange,showAgentFilter}: ReportTableProps) {
-    const [rows, setRows] = useState<Record<string, unknown>[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState<{ [key: string]: string }>({});
+const moneyKeys = new Set([
+  "receipted_amount",
+  "available_allocation",
+  "broker_commission",
+  "withholding_tax",
+  "commission_payable",
+  "commission_amount",
+  "transaction_total_amount",
+  "transactionstotalamount",
+]);
 
-    // Pagination States
-    const [page, setPage] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
-    const pageSize = 20; 
-    const [exporting, setExporting] = useState(false);
-    const [selectedRows, setSelectedRows] = useState<any[]>([]);
-    const [agents, setAgents] = useState<AgentOption[]>([]);
-
-
-    const summaryTotals = useMemo(() => {
-        return selectedRows.reduce(
-            (acc, row: any) => {
-                acc.receipted_amount += Number(row.receipted_amount) || 0;
-                acc.available_allocation += Number(row.available_allocation) || 0;
-                acc.broker_commission += Number(row.broker_commission) || 0;
-                acc.withholding_tax += Number(row.withholding_tax) || 0;
-                acc.commission_payable += Number(row.commission_payable) || 0;
-                return acc;
-            },
-            {
-                receipted_amount: 0,
-                available_allocation: 0,
-                broker_commission: 0,
-                withholding_tax: 0,
-                commission_payable: 0,
-            }
-        );
-    }, [selectedRows]);
-
-    const toggleRow = (row: any) => {
-    setSelectedRows((prev) =>
-        prev.some((r) => r === row)
-            ? prev.filter((r) => r !== row)
-            : [...prev, row]
-    );
-   };
-
-   const toggleAll = (checked: boolean) => {
-    if (checked) {
-        setSelectedRows(rows as any[]);
-    } else {
-        setSelectedRows([]);
-    }
+const formatCellValue = (key: string, value: unknown) => {
+  if (value === null || value === undefined || value === "") return "—";
+  if (moneyKeys.has(key)) {
+    const number = Number(value);
+    return Number.isFinite(number)
+      ? number.toLocaleString("en-KE", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : String(value);
+  }
+  return typeof value === "object" ? JSON.stringify(value) : String(value);
 };
 
+export default function ReportTable({
+  title,
+  endpoint,
+  columns,
+  showDateFilter,
+  exactDateKey,
+  displayCheckBoxes,
+  hidePagination,
+  onSelectionChange,
+  showAgentFilter,
+  transform,
+  exportVariant = "default",
+  exportReportTitle,
+}: ReportTableProps) {
+  const [rows, setRows] = useState<DataRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<DataRow[]>([]);
+  const [agents, setAgents] = useState<AgentOption[]>([]);
+  const pageSize = 20;
 
+  const summaryTotals = useMemo<Record<string, number>>(
+    () =>
+      selectedRows.reduce<Record<string, number>>(
+        (totals, row) => {
+          moneyKeys.forEach((key) => {
+            totals[key] = (totals[key] || 0) + (Number(row[key]) || 0);
+          });
+          return totals;
+        },
+        {} as Record<string, number>
+      ),
+    [selectedRows]
+  );
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-       
-
-            const params = new URLSearchParams();
-
-            params.append("page", String(page));
-
-            Object.entries(filters).forEach(([key, value]) => {
-                if (value) params.append(key, value);
-            });
-
-            const token = getAccessToken();
-
-            const res = await fetch(`${endpoint}?${params.toString()}`, {
-                headers: {
-                    Authorization: `Bearer ${getAccessToken()}`,
-                },
-            });
-
-
-            if (!res.ok) {
-                const errorText = await res.text();
-                console.log("API ERROR:", errorText);
-                toast.error("Failed to fetch data");
-                return;
-            }
-
-            const data = await res.json();
-
-            setRows(data.results || data || [] );
-            setTotalCount(data.count || data.pagination?.count || 0);
-        } catch (_err) {
-            console.error(_err);
-            toast.error("Failed to fetch data");
-            setRows([]);
-            setTotalCount(0);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Reset page when filters change
-
-    useEffect(() => {
-        const fetchAgents = async () => {
-            try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/commisions/getagentbrokers/`, {
-                    headers: {
-                        Authorization: `Bearer ${getAccessToken()}`,
-                    },
-                });
-
-                if (!res.ok) {
-                    throw new Error("Failed to fetch agents");
-                }
-
-                const data = await res.json();
-                const items = data.results || data || []; 
-
-                console.log("Fetched agents:", items);
-
-                setAgents(
-                    (items as any[])
-                        .map((agent) => ({
-                            value: String(agent.agentbrokername ?? ""),
-                            label: String(agent.agentbrokername ?? ""),
-                        }))
-                        .filter((agent) => agent.value && agent.label)
-                );
-            } catch (_err) {
-                console.error(_err);
-                toast.error("Failed to load agents");
-            }
-        };
-
-        fetchAgents();
-    }, []);
-
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, filters]);
-
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setPage(1);
-        setSelectedRows([]);
-    }, [filters]);
-
- 
-
-useEffect(() => {
-    if (onSelectionChange) {
-        onSelectionChange(selectedRows);
-        console.log("Selected rows:", selectedRows);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page) });
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      const response = await fetch(`${endpoint}?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${getAccessToken()}` },
+      });
+      if (!response.ok) throw new Error(await response.text());
+      const data = await response.json();
+      const sourceRows: DataRow[] = data.results || data || [];
+      setRows(transform ? transform(sourceRows) : sourceRows);
+      setTotalCount(data.count || data.pagination?.count || sourceRows.length);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to load report data");
+      setRows([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
     }
-}, [selectedRows]);
+  };
 
-    const handleExport = async () => {
-        setExporting(true);
-        const loadingToast = toast.loading("Exporting data...");
-        try {
-            const params = new URLSearchParams();
-            Object.entries(filters).forEach(([key, value]) => {
-                if (value) params.append(key, value);
-            });
-            params.append("export", "true");
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filters]);
 
-            const res = await fetch(`${endpoint}?${params.toString()}`, {
-                headers: {
-                    Authorization: `Bearer ${getAccessToken()}`,
-                },
-            });
-
-            if (!res.ok) {
-                throw new Error("Failed to export data");
-            }
-
-            const data = await res.json();
-            const exportData = data.results || data;
-
-            if (!Array.isArray(exportData) || exportData.length === 0) {
-                toast.error("No data available to export");
-                return;
-            }
-
-            const exportTotals = exportData.reduce(
-                (acc: Record<string, number>, row: any) => {
-                    acc.receipted_amount += Number(row.receipted_amount) || 0;
-                    acc.available_allocation += Number(row.available_allocation) || 0;
-                    acc.broker_commission += Number(row.broker_commission) || 0;
-                    acc.withholding_tax += Number(row.withholding_tax) || 0;
-                    acc.commission_payable += Number(row.commission_payable) || 0;
-                    return acc;
-                },
-                {
-                    receipted_amount: 0,
-                    available_allocation: 0,
-                    broker_commission: 0,
-                    withholding_tax: 0,
-                    commission_payable: 0,
-                }
-            );
-
-            // Map data to match columns
-            const formattedData = exportData.map((row: any) => {
-                const newRow: Record<string, any> = {};
-                columns.forEach((col) => {
-                    newRow[col.label] = typeof row[col.key] === "object" ? JSON.stringify(row[col.key]) : row[col.key] || "-";
-                });
-                return newRow;
-            });
-
-            const totalsRow: Record<string, any> = {};
-            columns.forEach((col, idx) => {
-                if (idx === 0) {
-                    totalsRow[col.label] = "Totals";
-                    return;
-                }
-
-                switch (col.key) {
-                    case "receipted_amount":
-                        totalsRow[col.label] = exportTotals.receipted_amount.toLocaleString();
-                        break;
-                    case "available_allocation":
-                        totalsRow[col.label] = exportTotals.available_allocation.toLocaleString();
-                        break;
-                    case "broker_commission":
-                        totalsRow[col.label] = exportTotals.broker_commission.toLocaleString();
-                        break;
-                    case "withholding_tax":
-                        totalsRow[col.label] = exportTotals.withholding_tax.toLocaleString();
-                        break;
-                    case "commission_payable":
-                        totalsRow[col.label] = exportTotals.commission_payable.toLocaleString();
-                        break;
-                    default:
-                        totalsRow[col.label] = "";
-                }
-            });
-
-            const worksheet = XLSX.utils.json_to_sheet([...formattedData, totalsRow]);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Export");
-            XLSX.writeFile(workbook, `${title}_Export_${new Date().toISOString().split("T")[0]}.xlsx`);
-
-            toast.success("Export successful!");
-        } catch (_err) {
-            console.error(_err);
-            toast.error("An error occurred during export");
-        } finally {
-            toast.dismiss(loadingToast);
-            setExporting(false);
-        }
+  useEffect(() => {
+    const fetchAgents = async () => {
+      if (!showAgentFilter) return;
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/commisions/getagentbrokers/`,
+          { headers: { Authorization: `Bearer ${getAccessToken()}` } }
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        const items = data.results || data || [];
+        setAgents(
+          (items as { agentbrokername?: unknown }[])
+            .map((agent) => ({
+              value: String(agent.agentbrokername || ""),
+              label: String(agent.agentbrokername || ""),
+            }))
+            .filter((agent) => agent.value)
+        );
+      } catch (error) {
+        console.error(error);
+      }
     };
+    fetchAgents();
+  }, [showAgentFilter]);
 
-    const totalPages = Math.ceil(totalCount / pageSize);
+  useEffect(() => {
+    onSelectionChange?.(selectedRows);
+  }, [onSelectionChange, selectedRows]);
 
-    return (
-        <div className="p-4 w-full max-w-8xl mx-auto">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">{title}</h2>
-                <span className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
-          Total Records: <strong>{totalCount}</strong>
-        </span>
-            </div>
+  const toggleRow = (row: DataRow) => {
+    setSelectedRows((current) =>
+      current.includes(row)
+        ? current.filter((selected) => selected !== row)
+        : [...current, row]
+    );
+  };
 
-            {/* Filters */}
-            <div className="flex gap-2 mb-4 flex-wrap bg-white p-3 rounded-lg border shadow-sm items-end">
-                
-                  {showAgentFilter && (
-                <div className="w-full sm:w-48">
-            <Select<AgentOption>
+  const clearFilters = () => {
+    setFilters({});
+    setPage(1);
+    setSelectedRows([]);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    const loadingToast = toast.loading("Preparing Excel report…");
+    try {
+      const params = new URLSearchParams({ export: "true" });
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      const response = await fetch(`${endpoint}?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${getAccessToken()}` },
+      });
+      if (!response.ok) throw new Error("Export request failed");
+      const data = await response.json();
+      const exportData = data.results || data;
+      if (!Array.isArray(exportData) || exportData.length === 0) {
+        toast.error("There are no records to export");
+        return;
+      }
+
+      if (exportVariant === "healthcare-commissions") {
+        await exportHealthcareCommissions(
+          exportData,
+          columns,
+          exportReportTitle || "Healthcare Commissions"
+        );
+      } else {
+        const formatted = exportData.map((row: DataRow) =>
+          Object.fromEntries(
+            columns.map((column) => [
+              column.label,
+              typeof row[column.key] === "object"
+                ? JSON.stringify(row[column.key])
+                : row[column.key] ?? "",
+            ])
+          )
+        );
+        const worksheet = XLSX.utils.json_to_sheet(formatted);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+        XLSX.writeFile(
+          workbook,
+          `${title || "Report"}_${new Date().toISOString().slice(0, 10)}.xlsx`
+        );
+      }
+      toast.success("Excel report downloaded");
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to create the Excel report");
+    } finally {
+      toast.dismiss(loadingToast);
+      setExporting(false);
+    }
+  };
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          {title && <h3 className="text-lg font-semibold text-slate-900">{title}</h3>}
+          <p className="mt-1 text-sm text-slate-500">
+            {totalCount.toLocaleString()} record{totalCount === 1 ? "" : "s"}
+            {activeFilterCount > 0 && ` · ${activeFilterCount} active filter${activeFilterCount === 1 ? "" : "s"}`}
+          </p>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0c477d] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#093a68] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {exporting ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          ) : (
+            <FiDownload />
+          )}
+          {exporting ? "Preparing…" : "Export Excel"}
+        </button>
+      </div>
+
+      <div className="border-b border-slate-100 bg-slate-50/70 p-4">
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <FiFilter />
+          Report filters
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          {showAgentFilter && (
+            <div className="min-w-[220px] flex-1 sm:max-w-[280px]">
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">Broker or agent</label>
+              <Select<AgentOption>
                 options={agents}
                 isSearchable
                 isClearable
-                placeholder="Select Agent"
-                
-                value={
-                    agents.find(
-                        (agent) =>
-                            agent.value === filters.broker_name
-                    ) || null
-                }
-                onChange={(selectedOption) => {
-                    setFilters((prev) => ({
-                        ...prev,
-                        broker_name: selectedOption?.value || "",
-                    }));
+                placeholder="All brokers"
+                value={agents.find((agent) => agent.value === filters.broker_name) || null}
+                onChange={(option) => {
+                  setFilters((current) => ({ ...current, broker_name: option?.value || "" }));
+                  setPage(1);
                 }}
-            />
-        </div>
-           )}
-                {columns.slice(0, 4).map((col) => (
-                    <div key={col.key} className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1 opacity-0 hidden sm:block">Filter</label>
-                        <input
-                            placeholder={`Filter ${col.label}`}
-                            value={filters[col.key] || ""}
-                            onChange={(e) => {
-                                setFilters((prev) => ({ ...prev, [col.key]: e.target.value }));
-                            }}
-                            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-48"
-                        />
-                    </div>
-                ))}
-
-                {showDateFilter && exactDateKey && (
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">Exact Date</label>
-                        <input
-                            type="date"
-                            value={filters[exactDateKey] || ""}
-                            onChange={(e) => {
-                                setFilters((prev) => ({ ...prev, [exactDateKey]: e.target.value, start_date: "", end_date: "" }));
-                            }}
-                            className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-36"
-                        />
-                    </div>
-                )}
-
-                {showDateFilter && (
-                    <>
-                        <div className="flex flex-col">
-                            <label className="text-xs text-gray-500 mb-1">Start Date</label>
-                            <input
-                                type="date"
-                                value={filters.start_date || ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setFilters((prev) => {
-                                        const newFilters: Record<string, string> = { ...prev, start_date: val };
-                                        if (exactDateKey) delete newFilters[exactDateKey];
-                                        return newFilters;
-                                    });
-                                }}
-                                className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-36"
-                            />
-                        </div>
-                        <div className="flex flex-col">
-                            <label className="text-xs text-gray-500 mb-1">End Date</label>
-                            <input
-                                type="date"
-                                value={filters.end_date || ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setFilters((prev) => {
-                                        const newFilters: Record<string, string> = { ...prev, end_date: val };
-                                        if (exactDateKey) delete newFilters[exactDateKey];
-                                        return newFilters;
-                                    });
-                                }}
-                                className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-36"
-                            />
-                        </div>
-                    </>
-                )}
-
-                <button
-                    onClick={() => setFilters({})}
-                    className="bg-gray-100 hover:bg-gray-200 px-4 py-1.5 rounded text-sm font-medium transition-colors h-8.5 self-end"
-                >
-                    Clear
-                </button>
-                <button
-                    onClick={handleExport}
-                    disabled={exporting}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors h-8.5 self-end disabled:opacity-50"
-                >
-                    {exporting ? "Exporting..." : "Export to Excel"}
-                </button>
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    minHeight: 40,
+                    borderRadius: 10,
+                    borderColor: state.isFocused ? "#93c5fd" : "#cbd5e1",
+                    boxShadow: state.isFocused ? "0 0 0 3px #dbeafe" : "none",
+                  }),
+                  menu: (base) => ({ ...base, zIndex: 40 }),
+                }}
+              />
             </div>
+          )}
 
-            {/* Table */}
+          {columns.slice(0, 3).map((column) => (
+            <div key={column.key} className="min-w-[180px] flex-1 sm:max-w-[230px]">
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                {column.label}
+              </label>
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={filters[column.key] || ""}
+                  onChange={(event) => {
+                    setFilters((current) => ({ ...current, [column.key]: event.target.value }));
+                    setPage(1);
+                  }}
+                  placeholder={`Search ${column.label.toLowerCase()}`}
+                  className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                />
+              </div>
+            </div>
+          ))}
+
+          {showDateFilter && exactDateKey && (
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">Exact date</label>
+              <input
+                type="date"
+                value={filters[exactDateKey] || ""}
+                onChange={(event) => {
+                  setFilters((current) => ({
+                    ...current,
+                    [exactDateKey]: event.target.value,
+                    start_date: "",
+                    end_date: "",
+                  }));
+                  setPage(1);
+                }}
+                className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+              />
+            </div>
+          )}
+
+          {showDateFilter && (
+            <>
+              {[
+                { key: "start_date", label: "From" },
+                { key: "end_date", label: "To" },
+              ].map((dateFilter) => (
+                <div key={dateFilter.key}>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                    {dateFilter.label}
+                  </label>
+                  <input
+                    type="date"
+                    value={filters[dateFilter.key] || ""}
+                    onChange={(event) => {
+                      setFilters((current) => {
+                        const next = { ...current, [dateFilter.key]: event.target.value };
+                        if (exactDateKey) delete next[exactDateKey];
+                        return next;
+                      });
+                      setPage(1);
+                    }}
+                    className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                  />
+                </div>
+              ))}
+            </>
+          )}
+
+          <button
+            onClick={clearFilters}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+          >
+            <FiRefreshCw />
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {selectedRows.length > 0 && (
+        <div className="flex flex-wrap gap-3 border-b border-blue-100 bg-blue-50 px-5 py-3">
+          <span className="rounded-lg bg-[#0c477d] px-3 py-2 text-xs font-semibold text-white">
+            {selectedRows.length} selected
+          </span>
+          {["receipted_amount", "available_allocation", "commission_payable"].map((key) => (
+            <div key={key} className="rounded-lg border border-blue-100 bg-white px-3 py-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                {key.replaceAll("_", " ")}
+              </p>
+              <p className="text-sm font-semibold text-slate-800">
+                {(summaryTotals[key] || 0).toLocaleString("en-KE", {
+                  minimumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-max text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 bg-white text-xs uppercase tracking-[0.08em] text-slate-500">
+              {displayCheckBoxes && (
+                <th className="w-14 px-5 py-4">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all records"
+                    checked={rows.length > 0 && selectedRows.length === rows.length}
+                    onChange={(event) => setSelectedRows(event.target.checked ? rows : [])}
+                    className="h-4 w-4 rounded border-slate-300 accent-[#0c477d]"
+                  />
+                </th>
+              )}
+              {columns.map((column) => (
+                <th key={column.key} className="whitespace-nowrap px-5 py-4 font-semibold">
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
             {loading ? (
-                <div className="p-20 text-center text-gray-400 animate-pulse">Loading data...</div>
+              Array.from({ length: 6 }).map((_, index) => (
+                <tr key={index}>
+                  <td colSpan={columns.length + (displayCheckBoxes ? 1 : 0)} className="px-5 py-3">
+                    <div className="h-8 animate-pulse rounded-lg bg-slate-100" />
+                  </td>
+                </tr>
+              ))
+            ) : rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length + (displayCheckBoxes ? 1 : 0)}
+                  className="px-6 py-16 text-center"
+                >
+                  <div className="mx-auto grid h-11 w-11 place-items-center rounded-xl bg-slate-100 text-slate-400">
+                    <FiSearch />
+                  </div>
+                  <p className="mt-3 font-semibold text-slate-700">No records found</p>
+                  <p className="mt-1 text-sm text-slate-500">Adjust or reset the report filters.</p>
+                </td>
+              </tr>
             ) : (
-                <div className="overflow-x-auto border rounded-xl bg-white shadow-sm">
-                    <table className="w-full text-sm text-left">
-                               <thead className="whitespace-nowrap bg-blue-600 text-white font-medium">
-                        <tr>
-
-                            {displayCheckBoxes && (
-                                <th className="p-3">
-                                    <div className="flex items-center gap-2">
-      <input
-    type="checkbox"
-    checked={
-        rows.length > 0 &&
-        selectedRows.length === rows.length
-    }
-    onChange={(e) => toggleAll(e.target.checked)}
-/>
-        <span className="text-sm">Select All</span>
-    </div>
-                                   
-                                </th>
-
-                                
-                            )}
-
-                            {columns.map((col) => (
-                                <th key={col.key} className="p-4 border-b border-blue-500">
-                                    {col.label}
-                                </th>
-                            ))}
-                        </tr>
-                        </thead>
-                        {/* <thead className=" whitespace-nowrap bg-blue-600 text-white font-medium">
-                        <tr>
-                            {columns.map((col) => (
-                                <th key={col.key} className="p-4 border-b border-blue-500">
-                                    {col.label}
-                                </th>
-                            ))}
-                        </tr>
-                        </thead> */}
-                        <tbody>
-                        {rows.length === 0 ? (
-                            <tr>
-                                <td colSpan={columns.length} className="p-10 text-center text-gray-500">
-                                    No data found matching your filters.
-                                </td>
-                            </tr>
-                        ) : (
-                            rows.map((row: Record<string, unknown>, idx: number) => (
-                                <tr key={idx} className="border-b last:border-0 hover:bg-blue-50 transition-colors">
-
-                                    {displayCheckBoxes && (
-                                        <td className="p-4 text-gray-700">
-                                      <input
-    type="checkbox"
-    checked={selectedRows.some(
-        (r) => r.push_note_code === (row as any).push_note_code
-    )}
-    onChange={() => toggleRow(row)}
-/>
-                                        </td>
-                                    )}
-
-                                    {/* {columns.map((col) => (
-                                            <td key={col.key} className="p-4 text-gray-700">
-                                            {typeof row[col.key] === "object" ? JSON.stringify(row[col.key]) : (row[col.key] as string) || "-"}
-                                        </td>
-                                    ))} */}
-
-                                    {columns.map((col) => (
-  <td key={col.key} className="p-4 text-gray-700">
-    {col.render
-      ? col.render(row)
-      : typeof row[col.key] === "object"
-      ? JSON.stringify(row[col.key])
-      : (row[col.key] as string) || "-"}
-  </td>
-))}
-                                </tr>
-
-                              
-                            ))
-                        )}
-                        {selectedRows.length > 0 && (
-                            <tr className="bg-blue-50 font-semibold text-gray-900">
-                                {displayCheckBoxes && <td className="p-4" />}
-                                {columns.map((col, idx) => {
-                                    if (idx === 0) {
-                                        return (
-                                            <td key={col.key} className="p-4">
-                                                Totals ({selectedRows.length})
-                                            </td>
-                                        );
-                                    }
-
-                                    switch (col.key) {
-                                        case "receipted_amount":
-                                            return (
-                                                <td key={col.key} className="p-4">
-                                                    {summaryTotals.receipted_amount.toLocaleString()}
-                                                </td>
-                                            );
-                                        case "available_allocation":
-                                            return (
-                                                <td key={col.key} className="p-4">
-                                                    {summaryTotals.available_allocation.toLocaleString()}
-                                                </td>
-                                            );
-                                        case "broker_commission":
-                                            return (
-                                                <td key={col.key} className="p-4">
-                                                    {summaryTotals.broker_commission.toLocaleString()}
-                                                </td>
-                                            );
-                                        case "withholding_tax":
-                                            return (
-                                                <td key={col.key} className="p-4">
-                                                    {summaryTotals.withholding_tax.toLocaleString()}
-                                                </td>
-                                            );
-                                        case "commission_payable":
-                                            return (
-                                                <td key={col.key} className="p-4">
-                                                    {summaryTotals.commission_payable.toLocaleString()}
-                                                </td>
-                                            );
-                                        default:
-                                            return (
-                                                <td key={col.key} className="p-4 text-gray-500">-</td>
-                                            );
-                                    }
-                                })}
-                            </tr>
-                        )}
-                        </tbody>
-                    </table>
-                </div>
+              rows.map((row, index) => (
+                <tr key={index} className="transition hover:bg-blue-50/45">
+                  {displayCheckBoxes && (
+                    <td className="px-5 py-3.5">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select record ${index + 1}`}
+                        checked={selectedRows.includes(row)}
+                        onChange={() => toggleRow(row)}
+                        className="h-4 w-4 rounded border-slate-300 accent-[#0c477d]"
+                      />
+                    </td>
+                  )}
+                  {columns.map((column) => (
+                    <td
+                      key={column.key}
+                      className={`whitespace-nowrap px-5 py-3.5 ${
+                        moneyKeys.has(column.key)
+                          ? "text-right font-medium tabular-nums text-slate-800"
+                          : "text-slate-600"
+                      }`}
+                    >
+                      {column.render
+                        ? column.render(row)
+                        : formatCellValue(column.key, row[column.key])}
+                    </td>
+                  ))}
+                </tr>
+              ))
             )}
+          </tbody>
+        </table>
+      </div>
 
-            {/* Pagination */}
-            <div className="mt-6 flex items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
-                <div className="text-sm text-gray-500">
-                    Page <span className="font-bold text-gray-800">{page}</span> of <span className="font-bold text-gray-800">{totalPages || 1}</span>
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        disabled={page <= 1 || loading}
-                        onClick={() => setPage(page - 1)}
-                        className="px-5 py-2 border rounded-lg text-sm font-semibold disabled:opacity-30 hover:bg-gray-50 transition-all"
-                    >
-                        ← Previous
-                    </button>
-                    <button
-                        disabled={page >= totalPages || loading}
-                        onClick={() => setPage(page + 1)}
-                        className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold disabled:opacity-30 hover:bg-blue-700 shadow-md transition-all"
-                    >
-                        Next →
-                    </button>
-                </div>
-            </div>
+      {!hidePagination && (
+        <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">
+            Page <span className="font-semibold text-slate-800">{page}</span> of{" "}
+            <span className="font-semibold text-slate-800">{totalPages}</span>
+          </p>
+          <div className="flex gap-2">
+            <button
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((current) => current - 1)}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <FiChevronLeft />
+              Previous
+            </button>
+            <button
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((current) => current + 1)}
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#0c477d] px-3 text-sm font-medium text-white transition hover:bg-[#093a68] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+              <FiChevronRight />
+            </button>
+          </div>
         </div>
-    );
+      )}
+    </section>
+  );
 }

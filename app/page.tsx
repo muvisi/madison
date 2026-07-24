@@ -1,52 +1,44 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import InputField from "../src/components/InputField";
-import Button from "../src/components/Button";
-import Logo from "../src/components/Logo";
-import { FiEye, FiEyeOff } from "react-icons/fi";
-
-type Triangle = {
-  x: number;
-  y: number;
-  size: number;
-  vx: number;
-  vy: number;
-  color: string;
-};
+import {
+  FiArrowRight,
+  FiCheckCircle,
+  FiEye,
+  FiEyeOff,
+  FiLock,
+  FiShield,
+  FiUser,
+} from "react-icons/fi";
 
 export default function LoginPage() {
   const router = useRouter();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginMethod, setLoginMethod] = useState("ldap");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [colorHue, setColorHue] = useState(0);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  // ---------- Login Handler ----------
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/account/login/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, loginMethod }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/account/login/`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password, loginMethod }),
+        }
+      );
+      const data = await response.json();
 
-      const data = await res.json();
-      setLoading(false);
-
-      if (!res.ok) {
-        setError(data.detail || "Invalid username or password");
+      if (!response.ok) {
+        setError(data.detail || "The username or password is incorrect.");
         return;
       }
 
@@ -54,166 +46,185 @@ export default function LoginPage() {
       localStorage.setItem("refreshToken", data.refresh);
       localStorage.setItem("username", data.username);
       localStorage.setItem("uuid", data.uuid);
-      localStorage.setItem("department", data.department);
-
+      localStorage.setItem("department", data.department || "");
       router.push("/dashboard");
-    } catch (err) {
+    } catch {
+      setError("We could not connect to the service. Please try again.");
+    } finally {
       setLoading(false);
-      setError("Something went wrong. Please try again.");
-      console.error(err);
     }
   };
 
-  // ---------- Triangle Canvas ----------
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    const triangles: Triangle[] = Array.from({ length: 50 }).map(() => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      size: 10 + Math.random() * 30,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
-      color: `rgba(${Math.floor(150 + Math.random() * 100)}, ${Math.floor(
-        100 + Math.random() * 150
-      )}, ${Math.floor(150 + Math.random() * 100)}, 0.3)`,
-    }));
-
-    const drawTriangle = (t: Triangle) => {
-      ctx.beginPath();
-      ctx.moveTo(t.x, t.y - t.size / 2);
-      ctx.lineTo(t.x - t.size / 2, t.y + t.size / 2);
-      ctx.lineTo(t.x + t.size / 2, t.y + t.size / 2);
-      ctx.closePath();
-      ctx.fillStyle = t.color;
-      ctx.fill();
-    };
-
-    const animate = () => {
-      ctx.clearRect(0, 0, width, height);
-      for (let i = 0; i < triangles.length; i++) {
-        const t = triangles[i];
-        t.x += t.vx;
-        t.y += t.vy;
-
-        if (t.x < 0 || t.x > width) t.vx *= -1;
-        if (t.y < 0 || t.y > height) t.vy *= -1;
-
-        for (let j = i + 1; j < triangles.length; j++) {
-          const t2 = triangles[j];
-          const dx = t.x - t2.x;
-          const dy = t.y - t2.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < (t.size + t2.size) / 2) {
-            [t.vx, t2.vx] = [t2.vx, t.vx];
-            [t.vy, t2.vy] = [t2.vy, t.vy];
-          }
-        }
-
-        drawTriangle(t);
-      }
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    const handleResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // ---------- Rainbow Text Effect ----------
-  useEffect(() => {
-    let animationFrame: number;
-    const updateHue = () => {
-      setColorHue((prev) => (prev + 1) % 360);
-      animationFrame = requestAnimationFrame(updateHue);
-    };
-    animationFrame = requestAnimationFrame(updateHue);
-    return () => cancelAnimationFrame(animationFrame);
-  }, []);
-
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-50 overflow-hidden p-4">
-      <canvas
-        ref={canvasRef}
-        className="absolute top-0 left-0 w-full h-full z-0"
-      />
+    <main className="min-h-screen bg-[#f3f6f9] lg:grid lg:grid-cols-[minmax(420px,0.92fr)_1.08fr]">
+      <section className="relative hidden overflow-hidden bg-[#092f57] px-14 py-12 text-white lg:flex lg:flex-col">
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full border-[70px] border-white/[0.04]" />
+        <div className="absolute -bottom-44 -left-32 h-[32rem] w-[32rem] rounded-full border-[90px] border-[#36b79a]/10" />
 
-      <div className="relative z-10 bg-white shadow-lg rounded-xl w-full max-w-md p-8 sm:p-12">
-        <Logo />
+        <img
+          src="/madison-group-logo.png"
+          alt="Madison Group"
+          className="relative h-auto w-56"
+        />
 
-        {/* Rainbow text without background */}
-        <h2
-          className="text-2xl font-extrabold mb-6 text-center"
-          style={{
-            color: `hsl(${colorHue}, 100%, 50%)`,
-            transition: "color 0.1s linear",
-          }}
-        >
-          Healthcare is Fun!
-        </h2>
+        <div className="relative my-auto max-w-xl">
+          <span className="mb-5 inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
+            Healthcare Operations
+          </span>
+          <h1 className="text-5xl font-semibold leading-[1.08] tracking-[-0.035em]">
+            One secure workspace for connected healthcare operations.
+          </h1>
+          <p className="mt-6 max-w-lg text-lg leading-8 text-blue-100/80">
+            Manage member data, integrations, financial workflows, and
+            operational reporting with confidence.
+          </p>
 
-        {error && (
-          <p className="bg-red-100 text-red-700 px-4 py-2 mb-4 rounded">{error}</p>
-        )}
+          <div className="mt-10 grid max-w-lg gap-4 sm:grid-cols-2">
+            {[
+              "Role-based access",
+              "Operational reporting",
+              "Commission workflows",
+              "Integration monitoring",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3 text-sm text-blue-50">
+                <FiCheckCircle className="text-[#49d0af]" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <p className="relative text-xs text-blue-200/60">
+          Madison Group · Life without worry
+        </p>
+      </section>
 
-          <select
-              value={loginMethod}
-              onChange={(e) => setLoginMethod(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-          >
-            <option value="ldap">LDAP Madison</option>
-            <option value="local">Local</option>
-          </select>
-
-          <InputField
-            placeholder="Username"
-            value={username}
-            onChange={setUsername}
+      <section className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-10">
+        <div className="w-full max-w-[460px]">
+          <img
+            src="/madison-group-logo.png"
+            alt="Madison Group"
+            className="mb-10 h-auto w-52 lg:hidden"
           />
 
-          {/* Password with eye toggle */}
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition pr-12"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            >
-              {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
-            </button>
+          <div className="mb-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2b6b9c]">
+              Secure access
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+              Welcome back
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Sign in with your Madison credentials to continue.
+            </p>
           </div>
 
-          <Button
-            type="submit"
-            text={loading ? "Logging in..." : "Login"}
-            disabled={loading}
-          />
-        </form>
+          {error && (
+            <div
+              role="alert"
+              className="mb-5 flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+            >
+              <FiShield className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        <p className="text-sm text-gray-500 mt-6 text-center">
-          &copy; 2026 Madison. All rights reserved.
-        </p>
-      </div>
-    </div>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <label htmlFor="login-method" className="mb-2 block text-sm font-medium text-slate-700">
+                Account type
+              </label>
+              <select
+                id="login-method"
+                value={loginMethod}
+                onChange={(event) => setLoginMethod(event.target.value)}
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-[#2b6b9c] focus:ring-4 focus:ring-blue-100"
+              >
+                <option value="ldap">Madison network account</option>
+                <option value="local">Local application account</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="username" className="mb-2 block text-sm font-medium text-slate-700">
+                Username
+              </label>
+              <div className="relative">
+                <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="username"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="Enter your username"
+                  required
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2b6b9c] focus:ring-4 focus:ring-blue-100"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">
+                Password
+              </label>
+              <div className="relative">
+                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-11 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2b6b9c] focus:ring-4 focus:ring-blue-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700"
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0c477d] px-5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(12,71,125,0.22)] transition hover:bg-[#093a68] focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  Signing in…
+                </>
+              ) : (
+                <>
+                  Sign in securely
+                  <FiArrowRight />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-8 border-t border-slate-200 pt-5 text-xs text-slate-500">
+            <div className="flex items-center justify-between">
+              <span>Protected Madison system</span>
+              <span>© 2026 Madison Group</span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-[11px] text-slate-400">
+              <span>
+                Built by <strong className="font-semibold text-slate-600">Samuel M.</strong>
+              </span>
+              {/* <span>
+                Endorsed by <strong className="font-semibold text-slate-600">Edward T.</strong>
+              </span> */}
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

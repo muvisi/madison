@@ -1,154 +1,107 @@
-"use client";
-
-import { useAccess } from "@/src/services/access";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import {
+  FiArrowRight,
+  FiCheckCircle,
+  FiClock,
+  FiCreditCard,
+  FiFileText,
+  FiShield,
+} from "react-icons/fi";
 
-export default function CommissionLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const workspaces = [
+  {
+    title: "Debited Business",
+    description: "Review debit notes and underlying transaction values.",
+    href: "/dashboard/commissions/payable",
+    icon: FiFileText,
+    color: "bg-blue-50 text-blue-700",
+  },
+  {
+    title: "Payment Status",
+    description: "Track receipts, allocations, and outstanding balances.",
+    href: "/dashboard/commissions/status",
+    icon: FiClock,
+    color: "bg-amber-50 text-amber-700",
+  },
+  {
+    title: "Authorize Payments",
+    description: "Validate commission calculations before payment approval.",
+    href: "/dashboard/commissions/pay",
+    icon: FiCreditCard,
+    color: "bg-emerald-50 text-emerald-700",
+  },
+  {
+    title: "Paid History",
+    description: "Access completed payments and export audit-ready reports.",
+    href: "/dashboard/commissions/paid",
+    icon: FiCheckCircle,
+    color: "bg-violet-50 text-violet-700",
+  },
+];
 
-   const [userDepartment, setUserDepartment] = useState<string | null>(null);
-    const [currentUsername, setCurrentUsername] = useState<string | null>(null);
-  
-    useEffect(() => {
-      const department = localStorage.getItem("department");
-      setUserDepartment(department);
-    }, []);
-
-      useEffect(() => {
-    const username = localStorage.getItem("username");
-    setCurrentUsername(username);
-  }, []);
-
-
-    
-  const pathname = usePathname();
-
-  const nav = [
-    {
-      href: "/dashboard/commissions/payable",
-      label: "Debited Business",
-      desc: "View all issued debit notes",
-      icon: "📄",
-    },
-    {
-      href: "/dashboard/commissions/status",
-      label: "Debit Status",
-      desc: "Track payment & allocation status",
-      icon: "📊",
-    },
-    {
-      href: "/dashboard/commissions/pay",
-      label: "Pay Commissions",
-      desc: "Process broker commission payouts",
-      icon: "💰",
-    },
-      {
-      href: "/dashboard/commissions/paid",
-      label: "Paid Commissions",
-      desc: "Track all paid commissions and history",
-      icon: "✅",
-    },
-  ];
-
-  const isActive = (href: string) => pathname.startsWith(href);
-
-  
-    // const hasAccess = useAccess("finance");
-    
-    //   if (!hasAccess) {
-    //     return (
-    //       <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-    //         Access denied. This module is restricted to Finance department only.
-    //       </div>
-    //     );
-    //   }
-
-  //   if (userDepartment !== "finance" && currentUsername !== "admin") {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-500">
-  //       Access denied. This module is restricted to Finance department only.
-  //     </div>
-  //   );
-  // }
-
+export default function CommissionsOverview() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* HEADER */}
-      <div className="max-w-7xl mx-auto px-6 pt-6">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Commission Dashboard
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Manage commissions, allocations, and payouts
-        </p>
-      </div>
-
-      {/* FLEX CARD NAV */}
-      <div className="max-w-7xl mx-auto px-6 mt-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
-          {nav.map((item) => {
-            const active = isActive(item.href);
-
+    <div className="grid gap-5 xl:grid-cols-[1fr_340px]">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+            Commission workspace
+          </p>
+          <h3 className="mt-1 text-xl font-semibold text-slate-900">
+            Choose a workflow
+          </h3>
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {workspaces.map((workspace) => {
+            const Icon = workspace.icon;
             return (
               <Link
-                key={item.href}
-                href={item.href}
-                className={`
-                  group relative rounded-xl border p-5 transition-all
-                  ${
-                    active
-                      ? "bg-gray-900 text-white border-gray-900 shadow-md"
-                      : "bg-white hover:bg-gray-100 border-gray-200"
-                  }
-                `}
+                key={workspace.href}
+                href={workspace.href}
+                className="group rounded-xl border border-slate-200 p-5 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_10px_28px_rgba(15,23,42,0.07)]"
               >
-                {/* ICON */}
-                <div className="text-2xl mb-3">{item.icon}</div>
-
-                {/* TITLE */}
-                <h3
-                  className={`text-sm font-semibold ${
-                    active ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {item.label}
-                </h3>
-
-                {/* DESCRIPTION */}
-                <p
-                  className={`text-xs mt-1 ${
-                    active ? "text-gray-300" : "text-gray-500"
-                  }`}
-                >
-                  {item.desc}
+                <span className={`grid h-11 w-11 place-items-center rounded-xl text-lg ${workspace.color}`}>
+                  <Icon />
+                </span>
+                <h4 className="mt-4 font-semibold text-slate-900">{workspace.title}</h4>
+                <p className="mt-2 min-h-12 text-sm leading-6 text-slate-500">
+                  {workspace.description}
                 </p>
-
-                {/* ACTIVE INDICATOR */}
-                {active && (
-                  <span className="absolute top-3 right-3 text-xs bg-white text-gray-900 px-2 py-0.5 rounded">
-                    Active
-                  </span>
-                )}
+                <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#0c477d]">
+                  Open workspace
+                  <FiArrowRight className="transition group-hover:translate-x-1" />
+                </span>
               </Link>
             );
           })}
-
         </div>
-      </div>
+      </section>
 
-      {/* CONTENT */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-          {children}
-        </div>
-      </main>
+      <aside className="rounded-2xl bg-[#0c477d] p-6 text-white">
+        <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-xl">
+          <FiShield />
+        </span>
+        <h3 className="mt-5 text-lg font-semibold">Controlled finance workflow</h3>
+        <p className="mt-2 text-sm leading-6 text-blue-100/75">
+          Commission payments move through a transparent, reviewable process
+          designed for finance governance.
+        </p>
+        <ol className="mt-6 space-y-4">
+          {[
+            "Confirm debit and receipt information",
+            "Review commission and withholding values",
+            "Authorize eligible broker payments",
+            "Retain paid records for audit reporting",
+          ].map((step, index) => (
+            <li key={step} className="flex gap-3 text-sm text-blue-50">
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-xs font-semibold">
+                {index + 1}
+              </span>
+              <span className="pt-0.5">{step}</span>
+            </li>
+          ))}
+        </ol>
+      </aside>
     </div>
   );
 }
-

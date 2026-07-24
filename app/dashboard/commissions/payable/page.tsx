@@ -1,24 +1,27 @@
 "use client";
 
 import Tables from "@/src/components/Tables";
-import Link from "next/link";
+import { FiFileText } from "react-icons/fi";
 
 export default function PayablePage() {
   return (
-    <div className="overflow-x-auto">
-       <div className="mb-4">
-        <Link
-          href="/dashboard/commissions"
-          className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded flex items-center gap-2 inline-flex"
-        >
-          ← Back to dashboard
-        </Link>
+    <div className="space-y-4">
+      <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-lg text-blue-700">
+          <FiFileText />
+        </span>
+        <div>
+          <h3 className="font-semibold text-slate-900">Debited Business Register</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Review issued debit notes, transaction values, policies, and assigned intermediaries.
+          </p>
+        </div>
       </div>
       <Tables
-        title="Commissions Payable"
+        title="Debited business"
         endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/records/`}
         showDateFilter
-        showAgentFilter={true}
+        showAgentFilter
         exactDateKey="push_note_request_date"
         columns={[
           { key: "dr_cr_note_number", label: "Debit Note" },
