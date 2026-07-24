@@ -117,6 +117,9 @@ const columns: Column<FollowUpReport>[] = [
    {
     key: "diagnosisName",
     label: "Diagnosis",
+    render: (value) => (
+    <TooltipText text={String(value ?? "")} />
+  ),
   },
    
   {

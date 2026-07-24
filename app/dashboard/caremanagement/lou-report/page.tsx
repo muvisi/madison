@@ -8,6 +8,7 @@ import {
   getLouStatusReport,
   exportLouStatusReport,
 } from "@/src/services/lou-status.service";
+import TooltipText from "@/src/components/Tooltip";
 
 const filterFields: FilterField[] = [
   {
@@ -107,10 +108,16 @@ const columns: Column<LouReport>[] = [
    {
     key: "diagnosisName",
     label: "Diagnosis",
+      render: (value) => (
+    <TooltipText text={String(value ?? "")} />
+  ),
   },
     {
     key: "louNotes",
     label: "LOU Notes",
+      render: (value) => (
+    <TooltipText text={String(value ?? "")} />
+  ),
   },
   {
     key: "reserveAmount",
