@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Datatable, { Column, LouReport } from "@/src/components/Datatable";
+import Datatable, { Column, FollowUpReport } from "@/src/components/Datatable";
 import ReportFilters, { FilterField } from "@/src/components/ReportFilters";
 import { LOU_STATUS, LOU_STATUSES } from "@/src/constants/lou-status";
 import {
-  getLouStatusReport,
-  exportLouStatusReport,
-} from "@/src/services/lou-status.service";
+  getFollowUpStatusReport,
+  exportFollowUpStatusReport,
+} from "@/src/services/followup.service";
+import TooltipText from "@/src/components/Tooltip";
 
 const filterFields: FilterField[] = [
   {
@@ -16,8 +17,8 @@ const filterFields: FilterField[] = [
     type: "text",
   },
   {
-    key: "customerName",
-    placeholder: "Customer",
+    key: "corporate",
+    placeholder: "Corporate",
     type: "text",
   },
   {
@@ -31,19 +32,25 @@ const filterFields: FilterField[] = [
     type: "select",
     options: LOU_STATUSES,
   },
-  {
-    key: "dateAuthorisedStartDate",
-    placeholder: "Date Authorized",
+    {
+    key: "followUpDate",
+    placeholder: "Follow-up Date",
     type: "date",
   },
   {
-    key: "dateAuthorisedEndDate",
+    key: "dateAdmitted",
+    placeholder: "Date Admitted",
+    type: "date",
+  },
+  {
+    key: "dischargeDate",
     placeholder: "Date Discharged",
     type: "date",
   },
 ];
 
-const columns: Column<LouReport>[] = [
+
+const columns: Column<FollowUpReport>[] = [
 
   {
   key: "admissionStatus",
@@ -67,8 +74,8 @@ const columns: Column<LouReport>[] = [
   ),
 },
    {
-    key: "customerName",
-    label: "Customer",
+    key: "corporate",
+    label: "Corporate",
   },
    {
     key: "memberName",
@@ -91,7 +98,10 @@ const columns: Column<LouReport>[] = [
     key: "benefit",
     label: "Benefit",
   },
- 
+  {
+    key: "dateAdmitted",
+    label: "Date Admitted",
+  },
   {
     key: "dateAuthorised",
     label: "Date Authorised",
@@ -108,46 +118,69 @@ const columns: Column<LouReport>[] = [
     key: "diagnosisName",
     label: "Diagnosis",
   },
-    {
-    key: "louNotes",
-    label: "LOU Notes",
-  },
+   
   {
-    key: "reserveAmount",
-    label: "Reserve Amount",
+  key: "louNotes",
+  label: "LOU Notes",
+  render: (value) => (
+    <TooltipText text={String(value ?? "")} />
+  ),
+},
+  {
+    key: "amountAuthorised",
+    label: "Amount Authorized",
     render: (value) =>
       new Intl.NumberFormat("en-KE", {
         style: "currency",
         currency: "KES",
       }).format(Number(value)),
-  },
-  {
-    key: "discountAmount",
-    label: "Discount Amount",
-    render: (value) =>
-      new Intl.NumberFormat("en-KE", {
-        style: "currency",
-        currency: "KES",
-      }).format(Number(value)),
-  },
-  {
-    key: "shashifType",
-    label: "SHA/SHIF Type",
-  },
-  {
-    key: "louShashifAmount",
-    label: "SHA/SHIF Amount",
-    render: (value) =>
-      new Intl.NumberFormat("en-KE", {
-        style: "currency",
-        currency: "KES",
-      }).format(Number(value)),
-  },
+    },
+ {
+  key: "currentActiveManagement",
+  label: "Current Active Management",
+  render: (value) => (
+    <TooltipText text={String(value ?? "")} />
+  ),
+},
 
+ {
+  key: "notes",
+  label: "Care Notes",
+  render: (value) => (
+    <TooltipText text={String(value ?? "")} />
+  ),
+},
+    {
+     key: "exclusionOrNonPayables",
+     label: "Exclusion/Non-Payables",
+    },
+    
+    {
+        key: "interimBill",
+        label: "Interim Bill",
+          render: (value) =>
+      new Intl.NumberFormat("en-KE", {
+        style: "currency",
+        currency: "KES",
+      }).format(Number(value)),
+
+    },
+    
+    {
+     key: "followUpDate",
+     label: "Follow-up Date",
+    },
+    {
+     key: "followUpType",
+     label: "Follow-up Type",
+    },
+
+ 
+ 
 ];
 
-export default function LouStatusReport() {
-  const [louReports, setLouReports] = useState<LouReport[]>([]);
+export default function FollowUpStatusReport() {
+  const [followUpReports, setFollowUpReports] = useState<FollowUpReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -156,16 +189,18 @@ export default function LouStatusReport() {
 
   const [filters, setFilters] = useState({
     memberNumber: "",
-    customerName: "",
+    corporate: "",
     providerName: "",
     admissionStatus: "",
+    followUpDate: "",
+    dateAdmitted: "",
     dateAuthorised: "",
     dischargeDate: "",
   
   });
 
 
- const loadLouStatusReport = async (
+ const loadFollowUpStatusReport = async (
   pageNumber: number,
   filterValues = filters
 ) => {
@@ -184,25 +219,15 @@ export default function LouStatusReport() {
       }
     });
 
-    // const response = await fetch(
-    //   `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/care-management/lou-status-report?${params.toString()}`
-    // );
+ 
+    const data = await getFollowUpStatusReport(params);
 
-    // if (!response.ok) {
-    //   throw new Error("Failed to load LOU Status Report");
-    // }
-    const data = await getLouStatusReport(params);
-
-    setLouReports(data.items);
+    setFollowUpReports(data.items);
     setTotalPages(data.totalPages);
 
-    // const data = await response.json();
-
-    // setLouReports(data.items);
-    // setTotalPages(data.totalPages);
   } catch (error) {
     console.error(error);
-    setLouReports([]);
+    setFollowUpReports([]);
     setTotalPages(1);
   } finally {
     setLoading(false);
@@ -212,7 +237,7 @@ export default function LouStatusReport() {
 };
 
   useEffect(() => {
-    loadLouStatusReport(page);
+    loadFollowUpStatusReport(page);
   }, [page]);
 
   const handleChange = (key: string, value: string) => {
@@ -224,15 +249,17 @@ export default function LouStatusReport() {
 
   const handleSearch = () => {
     setPage(1);
-    loadLouStatusReport(1);
+    loadFollowUpStatusReport(1);
   };
 
   const handleReset = () => {
     const resetFilters = {
     memberNumber: "",
-    customerName: "",
+    corporate: "",
     providerName: "",
     admissionStatus: "",
+    followUpDate: "",
+    dateAdmitted: "",
     dateAuthorised: "",
     dischargeDate: "",
 
@@ -240,7 +267,7 @@ export default function LouStatusReport() {
 
     setFilters(resetFilters);
     setPage(1);
-    loadLouStatusReport(1, resetFilters);
+    loadFollowUpStatusReport(1, resetFilters);
   };
 
 
@@ -258,17 +285,9 @@ const handleExport = async () => {
       }
     });
 
-    // const response = await fetch(
-    //   `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/care-management/lou-status-report?${params.toString()}`
-    // );
 
-    // if (!response.ok) {
-    //   throw new Error("Failed to generate report");
-    // }
 
-    // const result = await response.json();
-
-    const result = await exportLouStatusReport(params);
+    const result = await exportFollowUpStatusReport(params);
 
     if (!result.downloadUrl) {
       throw new Error("Download URL not returned.");
@@ -284,7 +303,7 @@ const handleExport = async () => {
     const exportDate = now.toISOString().split("T")[0];
     const exportTime = now.toTimeString().split(" ")[0].replace(/:/g, "-");
 
-    let fileName = "Daily Admissions Report";
+    let fileName = "Follow-up Report";
 
     if (filters.dateAuthorised && filters.dischargeDate) {
       fileName += ` (${filters.dateAuthorised} to ${filters.dischargeDate})`;
@@ -314,7 +333,7 @@ const handleExport = async () => {
   return (
     <div className="space-y-8">
       <h2 className="text-xl font-bold">
-      Daily Admissions Report
+      Follow-up Report
     </h2>
    
       <ReportFilters
@@ -331,7 +350,7 @@ const handleExport = async () => {
       <div className="mx-auto max-w-8xl overflow-x-auto rounded-lg border bg-white p-4 shadow">
         <Datatable
           columns={columns}
-          data={louReports}
+          data={followUpReports}
           loading={loading}
           currentPage={page}
           totalPages={totalPages}

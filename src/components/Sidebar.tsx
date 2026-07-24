@@ -80,6 +80,15 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
           { name: "Failed syncs", path: "/dashboard/reports/provider-failure" },
         ],
       },
+      {
+        name: "Care Management",
+        icon: FiShield,
+        children: [
+          { name: "Daily Admissions Report", path: "/dashboard/caremanagement/lou-report" },
+          { name: "Follow-up Report", path: "/dashboard/caremanagement/followup-report" },
+          
+        ],
+      },
     ],
   },
   {

@@ -25,6 +25,7 @@ export interface LouReport {
   referenceNumber: string;
   providerName: string;
   benefit: string;
+  dateAdmitted:string
   dateAuthorised: string;
   dischargeDate: string;
   lengthOfStay: number;
@@ -34,6 +35,32 @@ export interface LouReport {
   discountAmount: number;
   shashifType: string;
   louShashifAmount: number;
+}
+
+export interface FollowUpReport {
+
+  caseLouCode: number
+  admissionStatus: string
+  corporate: string
+  memberName: string
+  memberNumber: string
+  referenceNumber: string
+  providerName: string
+  benefit: string
+  dateAdmitted: string
+  dateAuthorised: string
+  amountAuthorised: number
+  dischargeDate: string
+  lengthOfStay: number
+  diagnosisName: string
+  louNotes: string
+  currentActiveManagement: string
+  notes: string
+  exclusionOrNonPayables: string
+  interimBill: number
+  followUpDate: string
+  followUpType: string
+
 }
 
 export default function DataTable<T>({
@@ -79,7 +106,7 @@ export default function DataTable<T>({
         colSpan={columns.length}
         className="border border-gray-200 py-10"
       >
-        <LoadingSpinner text="Loading LOU Status Report..." />
+        <LoadingSpinner text="Loading ..." />
       </td>
     </tr>
   ) : data.length > 0 ? (

@@ -1,6 +1,8 @@
 "use client";
 
 import DatePicker from "react-datepicker";
+import { FiDownload, FiRefreshCw, FiSearch } from "react-icons/fi";
+import { format } from "date-fns";
 
 export interface SelectOption {
   value: string;
@@ -83,12 +85,7 @@ export default function ReportFilters({
                     : null
                 }
                 onChange={(date: Date | null) =>
-                  onChange(
-                    field.key,
-                    date
-                      ? date.toISOString().split("T")[0]
-                      : ""
-                  )
+                  onChange(field.key, date ? format(date, "yyyy-MM-dd") : "")
                 }
                 placeholderText={field.placeholder}
                 dateFormat="yyyy-MM-dd"
@@ -101,44 +98,34 @@ export default function ReportFilters({
       </div>
 
       {/* Buttons */}
+  
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button
-          type="button"
-          onClick={onReset}
-          className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
-        >
-          Clear Filters
-        </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="flex items-center gap-2 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            <FiRefreshCw className="h-4 w-4" />
+            Reset Filters
+          </button>
 
-        {/* <button
-          type="button"
-          onClick={onSearch}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-        >
-          Search
-        </button> */}
-        <button
+          <button
             onClick={onSearch}
             disabled={searching || exporting}
-            className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700  disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            className="flex items-center gap-2 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FiSearch className="h-4 w-4" />
             {searching ? "Searching..." : "Search"}
-        </button>
+          </button>
 
-        {/* <button
-          type="button"
-          onClick={onExport}
-          className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
-        >
-          Export Excel
-        </button> */}
-        <button
+          <button
             onClick={onExport}
             disabled={searching || exporting}
-            className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            className="flex items-center gap-2 rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FiDownload className="h-4 w-4" />
             {exporting ? "Exporting..." : "Export Excel"}
-        </button>
+          </button>
       </div>
     </div>
   );
