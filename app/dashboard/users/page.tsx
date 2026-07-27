@@ -396,6 +396,7 @@ export default function UsersPage() {
                   <option value="">Select department</option>
                   <option value="underwriting">Underwriting</option>
                   <option value="finance">Finance</option>
+                  <option value="caremanagement">Care Management</option>
                 </select>
               </div>
               <Field label="Username" name="username" value={form.username} onChange={updateField} required />
@@ -472,6 +473,7 @@ export default function UsersPage() {
                     <option value="">Select department</option>
                     <option value="underwriting">Underwriting</option>
                     <option value="finance">Finance</option>
+                    <option value="caremanagement">Care Management</option>
                   </select>
                 </div>
               </div>
