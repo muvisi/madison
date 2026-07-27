@@ -9,6 +9,8 @@ import {
   exportLouStatusReport,
 } from "@/src/services/lou-status.service";
 import TooltipText from "@/src/components/Tooltip";
+import * as XLSX from "xlsx";
+import toast from "react-hot-toast";
 
 const filterFields: FilterField[] = [
   {
@@ -191,22 +193,13 @@ export default function LouStatusReport() {
       }
     });
 
-    // const response = await fetch(
-    //   `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/care-management/lou-status-report?${params.toString()}`
-    // );
-
-    // if (!response.ok) {
-    //   throw new Error("Failed to load LOU Status Report");
-    // }
+  
     const data = await getLouStatusReport(params);
 
     setLouReports(data.items);
     setTotalPages(data.totalPages);
 
-    // const data = await response.json();
 
-    // setLouReports(data.items);
-    // setTotalPages(data.totalPages);
   } catch (error) {
     console.error(error);
     setLouReports([]);
@@ -251,8 +244,69 @@ export default function LouStatusReport() {
   };
 
 
+// const handleExport = async () => {
+
+//   setExporting(true);
+
+//   try {
+//     const params = new URLSearchParams();
+
+//     params.append("export", "true");
+
+//     Object.entries(filters).forEach(([key, value]) => {
+//       if (value !== undefined && value !== null && value !== "") {
+//         params.append(key, String(value));
+//       }
+//     });
+
+
+//     const result = await exportLouStatusReport(params);
+
+//     if (!result.downloadUrl) {
+//       throw new Error("Download URL not returned.");
+//     }
+
+//     if (result.totalItems === 0) {
+//       alert("There are no records to export.");
+//       return;
+//     }
+
+//     const now = new Date();
+
+//     const exportDate = now.toISOString().split("T")[0];
+//     const exportTime = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+
+//     let fileName = "Daily Admissions Report";
+
+//     if (filters.dateAuthorised && filters.dischargeDate) {
+//       fileName += ` (${filters.dateAuthorised} to ${filters.dischargeDate})`;
+//     } else if (filters.dateAuthorised) {
+//       fileName += ` (Authorised ${filters.dateAuthorised})`;
+//     } else if (filters.dischargeDate) {
+//       fileName += ` (Discharged ${filters.dischargeDate})`;
+//     }
+
+//     fileName += ` - Exported ${exportDate} ${exportTime}.xlsx`;
+
+//     const link = document.createElement("a");
+//     link.href = result.downloadUrl;
+//     link.download = fileName;
+
+//     document.body.appendChild(link);
+//     link.click();
+//     link.remove();
+//   } catch (error) {
+//     console.error(error);
+//     alert("Failed to export report.");
+//   } finally {
+//     setExporting(false);
+//   }
+// };
+
 const handleExport = async () => {
   setExporting(true);
+
+  const loadingToast = toast.loading("Preparing Excel report...");
 
   try {
     const params = new URLSearchParams();
@@ -265,31 +319,66 @@ const handleExport = async () => {
       }
     });
 
-    // const response = await fetch(
-    //   `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/care-management/lou-status-report?${params.toString()}`
-    // );
-
-    // if (!response.ok) {
-    //   throw new Error("Failed to generate report");
-    // }
-
-    // const result = await response.json();
-
     const result = await exportLouStatusReport(params);
 
-    if (!result.downloadUrl) {
-      throw new Error("Download URL not returned.");
-    }
+    const exportData = result.items ?? [];
 
-    if (result.totalItems === 0) {
-      alert("There are no records to export.");
+    if (exportData.length === 0) {
+      toast.error("There are no records to export.");
       return;
     }
+
+    const formattedData = exportData.map((row: any) =>
+      Object.fromEntries(
+        columns.map((column) => {
+          let value = row[column.key];
+
+          if (typeof value === "string") {
+            value = value.trim();
+          }
+
+          return [
+            column.label,
+            value === null || value === undefined
+              ? ""
+              : typeof value === "object"
+              ? JSON.stringify(value)
+              : value,
+          ];
+        })
+      )
+    );
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+    // Auto-size columns
+    worksheet["!cols"] = columns.map((column) => ({
+      wch:
+        Math.max(
+          column.label.length,
+          ...formattedData.map((row: any) =>
+            String(row[column.label as keyof typeof row] ?? "").length
+          )
+        ) + 2,
+    }));
+
+  
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Daily Admissions Report"
+    );
 
     const now = new Date();
 
     const exportDate = now.toISOString().split("T")[0];
-    const exportTime = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+    const exportTime = now
+      .toTimeString()
+      .split(" ")[0]
+      .replace(/:/g, "-");
 
     let fileName = "Daily Admissions Report";
 
@@ -303,17 +392,16 @@ const handleExport = async () => {
 
     fileName += ` - Exported ${exportDate} ${exportTime}.xlsx`;
 
-    const link = document.createElement("a");
-    link.href = result.downloadUrl;
-    link.download = fileName;
+    XLSX.writeFile(workbook, fileName);
 
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    toast.success(
+      `${exportData.length} record${exportData.length === 1 ? "" : "s"} exported successfully.`
+    );
   } catch (error) {
-    console.error(error);
-    alert("Failed to export report.");
+    console.error("Export failed:", error);
+    toast.error("Failed to export report.");
   } finally {
+    toast.dismiss(loadingToast);
     setExporting(false);
   }
 };

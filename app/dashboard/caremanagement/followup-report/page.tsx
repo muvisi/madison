@@ -9,6 +9,8 @@ import {
   exportFollowUpStatusReport,
 } from "@/src/services/followup.service";
 import TooltipText from "@/src/components/Tooltip";
+import * as XLSX from "xlsx";
+import toast from "react-hot-toast";
 
 const filterFields: FilterField[] = [
   {
@@ -274,8 +276,69 @@ export default function FollowUpStatusReport() {
   };
 
 
+// const handleExport = async () => {
+//   setExporting(true);
+
+//   try {
+//     const params = new URLSearchParams();
+
+//     params.append("export", "true");
+
+//     Object.entries(filters).forEach(([key, value]) => {
+//       if (value !== undefined && value !== null && value !== "") {
+//         params.append(key, String(value));
+//       }
+//     });
+
+
+
+//     const result = await exportFollowUpStatusReport(params);
+
+//     if (!result.downloadUrl) {
+//       throw new Error("Download URL not returned.");
+//     }
+
+//     if (result.totalItems === 0) {
+//       alert("There are no records to export.");
+//       return;
+//     }
+
+//     const now = new Date();
+
+//     const exportDate = now.toISOString().split("T")[0];
+//     const exportTime = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+
+//     let fileName = "Follow-up Report";
+
+//     if (filters.dateAuthorised && filters.dischargeDate) {
+//       fileName += ` (${filters.dateAuthorised} to ${filters.dischargeDate})`;
+//     } else if (filters.dateAuthorised) {
+//       fileName += ` (Authorised ${filters.dateAuthorised})`;
+//     } else if (filters.dischargeDate) {
+//       fileName += ` (Discharged ${filters.dischargeDate})`;
+//     }
+
+//     fileName += ` - Exported ${exportDate} ${exportTime}.xlsx`;
+
+//     const link = document.createElement("a");
+//     link.href = result.downloadUrl;
+//     link.download = fileName;
+
+//     document.body.appendChild(link);
+//     link.click();
+//     link.remove();
+//   } catch (error) {
+//     console.error(error);
+//     alert("Failed to export report.");
+//   } finally {
+//     setExporting(false);
+//   }
+// };
+
 const handleExport = async () => {
   setExporting(true);
+
+  const loadingToast = toast.loading("Preparing Excel report...");
 
   try {
     const params = new URLSearchParams();
@@ -288,23 +351,64 @@ const handleExport = async () => {
       }
     });
 
-
-
     const result = await exportFollowUpStatusReport(params);
 
-    if (!result.downloadUrl) {
-      throw new Error("Download URL not returned.");
-    }
+    const exportData = result?.items ?? [];
 
-    if (result.totalItems === 0) {
-      alert("There are no records to export.");
+    if (exportData.length === 0) {
+      toast.error("There are no records to export.");
       return;
     }
+
+    const formattedData = exportData.map((row: any) =>
+      Object.fromEntries(
+        columns.map((column) => {
+          let value = row[column.key];
+
+          if (typeof value === "string") {
+            value = value.trim();
+          }
+
+          return [
+            column.label,
+            value === null || value === undefined
+              ? ""
+              : typeof value === "object"
+              ? JSON.stringify(value)
+              : value,
+          ];
+        })
+      )
+    );
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+    // Auto-size columns
+    worksheet["!cols"] = columns.map((column) => ({
+      wch:
+        Math.max(
+          column.label.length,
+          ...formattedData.map((row: any) =>
+            String(row[column.label as keyof typeof row] ?? "").length
+          )
+        ) + 2,
+    }));
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Follow-up Report"
+    );
 
     const now = new Date();
 
     const exportDate = now.toISOString().split("T")[0];
-    const exportTime = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+    const exportTime = now
+      .toTimeString()
+      .split(" ")[0]
+      .replace(/:/g, "-");
 
     let fileName = "Follow-up Report";
 
@@ -318,17 +422,16 @@ const handleExport = async () => {
 
     fileName += ` - Exported ${exportDate} ${exportTime}.xlsx`;
 
-    const link = document.createElement("a");
-    link.href = result.downloadUrl;
-    link.download = fileName;
+    XLSX.writeFile(workbook, fileName);
 
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    toast.success(
+      `${exportData.length} record${exportData.length === 1 ? "" : "s"} exported successfully.`
+    );
   } catch (error) {
-    console.error(error);
-    alert("Failed to export report.");
+    console.error("Export failed:", error);
+    toast.error("Failed to export report.");
   } finally {
+    toast.dismiss(loadingToast);
     setExporting(false);
   }
 };
