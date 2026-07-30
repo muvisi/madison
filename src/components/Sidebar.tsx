@@ -86,7 +86,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
         children: [
           { name: "Daily Admissions Report", path: "/dashboard/caremanagement/lou-report" },
           { name: "Follow-up Report", path: "/dashboard/caremanagement/followup-report" },
-          
+          { name: "Decline Report", path: "/dashboard/caremanagement/decline-report" },
         ],
       },
     ],

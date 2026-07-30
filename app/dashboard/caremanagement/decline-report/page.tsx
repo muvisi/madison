@@ -1,0 +1,371 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Datatable, { Column, DeclineReport, FollowUpReport } from "@/src/components/Datatable";
+import ReportFilters, { FilterField } from "@/src/components/ReportFilters";
+import {
+  getDeclineReport,
+  exportDeclineReport,
+} from "@/src/services/decline.service";
+import TooltipText from "@/src/components/Tooltip";
+import * as XLSX from "xlsx";
+import toast from "react-hot-toast";
+
+const filterFields: FilterField[] = [
+  {
+    key: "memberNumber",
+    placeholder: "Member Number",
+    type: "text",
+  },
+   {
+    key: "memberName",
+    placeholder: "Member Name",
+    type: "text",
+  },
+  {
+    key: "corporate",
+    placeholder: "Corporate",
+    type: "text",
+  },
+  {
+    key: "providerName",
+    placeholder: "Provider",
+    type: "text",
+  },
+  
+  {
+    key: "declinedDate",
+    placeholder: "Date Declined",
+    type: "date",
+  },
+  {
+    key: "declinedDateStartDate",
+    placeholder: "Date From",
+    type: "date",
+  },
+   {
+    key: "declinedDateEndDate",
+    placeholder: "Date To",
+    type: "date",
+  }
+
+];
+
+
+const columns: Column<DeclineReport>[] = [
+   {
+    key: "corporate",
+    label: "Corporate",
+  },
+   {
+    key: "memberName",
+    label: "Member Name",
+  },
+    {
+    key: "memberNumber",
+    label: "Member No",
+  },
+  {
+    key: "referenceNumber",
+    label: "Reference No",
+  },
+
+  {
+    key: "providerName",
+    label: "Provider Name",
+  },
+  {
+    key: "declinedDate",
+    label: "Date Declined",
+  },
+  {
+    key: "declineReason",
+    label: "Decline Reason",
+  },
+  {
+    key: "declineLetterNotes",
+    label: "Decline Notes",
+  },
+   {
+    key: "diagnosisName",
+    label: "Diagnosis",
+    render: (value) => (
+    <TooltipText text={String(value ?? "")} />
+  ),
+  },
+   
+];
+
+export default function FollowUpStatusReport() {
+  const [declineReports, setDeclineReports] = useState<DeclineReport[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [filters, setFilters] = useState({
+    memberNumber: "",
+    memberName: "",
+    corporate: "",
+    providerName: "",
+    declinedDate: "",
+    declinedDateStartDate: "",
+    declinedDateEndDate: "",
+  
+  });
+
+
+ const loadDeclineReport = async (
+  pageNumber: number,
+  filterValues = filters
+) => {
+  setLoading(true);
+  setSearching(true);
+
+  try {
+    const params = new URLSearchParams();
+
+    params.append("page", pageNumber.toString());
+    params.append("pageSize", "10");
+
+    Object.entries(filterValues).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, String(value));
+      }
+    });
+
+ 
+    const data = await getDeclineReport(params);
+
+    setDeclineReports(data.items);
+    setTotalPages(data.totalPages);
+
+  } catch (error) {
+    console.error(error);
+    setDeclineReports([]);
+    setTotalPages(1);
+  } finally {
+    setLoading(false);
+    setSearching(false);
+    setExporting(false);
+  }
+};
+
+  useEffect(() => {
+    loadDeclineReport(page);
+  }, [page]);
+
+  const handleChange = (key: string, value: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleSearch = () => {
+    setPage(1);
+    loadDeclineReport(1);
+  };
+
+  const handleReset = () => {
+    const resetFilters = {
+    memberNumber: "",
+    memberName: "",
+    corporate: "",
+    providerName: "",
+    declinedDate: "",
+    declinedDateStartDate: "",
+    declinedDateEndDate: "",
+
+    };
+
+    setFilters(resetFilters);
+    setPage(1);
+    loadDeclineReport(1, resetFilters);
+  };
+
+
+// const handleExport = async () => {
+//   setExporting(true);
+
+//   try {
+//     const params = new URLSearchParams();
+
+//     params.append("export", "true");
+
+//     Object.entries(filters).forEach(([key, value]) => {
+//       if (value !== undefined && value !== null && value !== "") {
+//         params.append(key, String(value));
+//       }
+//     });
+
+
+
+//     const result = await exportFollowUpStatusReport(params);
+
+//     if (!result.downloadUrl) {
+//       throw new Error("Download URL not returned.");
+//     }
+
+//     if (result.totalItems === 0) {
+//       alert("There are no records to export.");
+//       return;
+//     }
+
+//     const now = new Date();
+
+//     const exportDate = now.toISOString().split("T")[0];
+//     const exportTime = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+
+//     let fileName = "Follow-up Report";
+
+//     if (filters.dateAuthorised && filters.dischargeDate) {
+//       fileName += ` (${filters.dateAuthorised} to ${filters.dischargeDate})`;
+//     } else if (filters.dateAuthorised) {
+//       fileName += ` (Authorised ${filters.dateAuthorised})`;
+//     } else if (filters.dischargeDate) {
+//       fileName += ` (Discharged ${filters.dischargeDate})`;
+//     }
+
+//     fileName += ` - Exported ${exportDate} ${exportTime}.xlsx`;
+
+//     const link = document.createElement("a");
+//     link.href = result.downloadUrl;
+//     link.download = fileName;
+
+//     document.body.appendChild(link);
+//     link.click();
+//     link.remove();
+//   } catch (error) {
+//     console.error(error);
+//     alert("Failed to export report.");
+//   } finally {
+//     setExporting(false);
+//   }
+// };
+
+const handleExport = async () => {
+  setExporting(true);
+
+  const loadingToast = toast.loading("Preparing Excel report...");
+
+  try {
+    const params = new URLSearchParams();
+
+    params.append("export", "true");
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, String(value));
+      }
+    });
+
+    const result = await exportDeclineReport(params);
+
+    const exportData = result?.items ?? [];
+
+    if (exportData.length === 0) {
+      toast.error("There are no records to export.");
+      return;
+    }
+
+    const formattedData = exportData.map((row: any) =>
+      Object.fromEntries(
+        columns.map((column) => {
+          let value = row[column.key];
+
+          if (typeof value === "string") {
+            value = value.trim();
+          }
+
+          return [
+            column.label,
+            value === null || value === undefined
+              ? ""
+              : typeof value === "object"
+              ? JSON.stringify(value)
+              : value,
+          ];
+        })
+      )
+    );
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+    // Auto-size columns
+    worksheet["!cols"] = columns.map((column) => ({
+      wch:
+        Math.max(
+          column.label.length,
+          ...formattedData.map((row: any) =>
+            String(row[column.label as keyof typeof row] ?? "").length
+          )
+        ) + 2,
+    }));
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Decline Report"
+    );
+
+    const now = new Date();
+
+    const exportDate = now.toISOString().split("T")[0];
+    const exportTime = now
+      .toTimeString()
+      .split(" ")[0]
+      .replace(/:/g, "-");
+
+    let fileName = "Decline Report";
+
+
+    fileName += ` - Exported ${exportDate} ${exportTime}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+
+    toast.success(
+      `${exportData.length} record${exportData.length === 1 ? "" : "s"} exported successfully.`
+    );
+  } catch (error) {
+    console.error("Export failed:", error);
+    toast.error("Failed to export report.");
+  } finally {
+    toast.dismiss(loadingToast);
+    setExporting(false);
+  }
+};
+
+  return (
+    <div className="space-y-8">
+      <h2 className="text-xl font-bold">
+      Decline Report
+    </h2>
+   
+      <ReportFilters
+        fields={filterFields}
+        values={filters}
+        onChange={handleChange}
+        onSearch={handleSearch}
+        onReset={handleReset}
+        onExport={handleExport}
+        searching={searching}
+        exporting={exporting}
+      />
+
+      <div className="mx-auto max-w-8xl overflow-x-auto rounded-lg border bg-white p-4 shadow">
+        <Datatable
+          columns={columns}
+          data={declineReports}
+          loading={loading}
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      </div>
+    </div>
+  );
+}

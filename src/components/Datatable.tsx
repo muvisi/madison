@@ -63,6 +63,20 @@ export interface FollowUpReport {
 
 }
 
+
+export interface DeclineReport {
+  referenceNumber: number
+  corporate: string
+  memberName: string
+  memberNumber: string
+  providerName: string
+  declinedDate: string
+  declineReason: string
+  declineLetterNotes: string
+  diagnosisName: string
+}
+
+
 export default function DataTable<T>({
   columns,
   data,
@@ -75,7 +89,8 @@ export default function DataTable<T>({
     <div className="mx-auto max-w-8xl">
       <div className="overflow-hidden rounded-lg border border-gray-300 bg-white shadow-sm">
         <div className="max-h-150 overflow-auto">
-          <table className="min-w-max border-collapse text-sm">
+          {/* <table className="min-w-max border-collapse text-sm"> */}
+            <table className="w-full border-collapse text-sm">
             {/* Header */}
             <thead className="sticky top-0 bg-blue-700 text-white">
               <tr>
