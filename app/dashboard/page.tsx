@@ -12,6 +12,7 @@ import {
   FiLayers,
   FiRefreshCw,
   FiShield,
+  FiTag,
   FiUsers,
   FiZap,
 } from "react-icons/fi";
@@ -51,6 +52,45 @@ const quickActions = [
   { label: "Run bulk operation", href: "/dashboard/bulk", icon: FiZap },
   { label: "Review commissions", href: "/dashboard/commissions/payable", icon: FiCreditCard },
   { label: "Check eTIMS status", href: "/dashboard/etims", icon: FiFileText },
+];
+
+const syncOperations = [
+  {
+    name: "Members",
+    description: "Push an individual member record to the remote system.",
+    href: "/dashboard/pusher/Members",
+    icon: FiUsers,
+  },
+  {
+    name: "Benefits",
+    description: "Synchronize benefit configuration for a scheme.",
+    href: "/dashboard/pusher/Benefits",
+    icon: FiLayers,
+  },
+  {
+    name: "Categories",
+    description: "Push scheme category configuration updates.",
+    href: "/dashboard/pusher/Categories",
+    icon: FiTag,
+  },
+  {
+    name: "Copays",
+    description: "Synchronize copay rules for a scheme.",
+    href: "/dashboard/pusher/Copays",
+    icon: FiCreditCard,
+  },
+  {
+    name: "Waiting Periods",
+    description: "Push waiting-period updates for an individual member.",
+    href: "/dashboard/pusher/Waiting%20Periods",
+    icon: FiClock,
+  },
+  {
+    name: "Restrictions",
+    description: "Synchronize provider restriction rules for a scheme.",
+    href: "/dashboard/pusher/Restrictions",
+    icon: FiShield,
+  },
 ];
 
 export default function DashboardHome() {
@@ -142,6 +182,45 @@ export default function DashboardHome() {
                 <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#0c477d]">
                   Open module
                   <FiArrowRight className="transition group-hover:translate-x-1" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+            Remote synchronization
+          </p>
+          <h3 className="mt-1 text-xl font-semibold text-slate-900">
+            Push operational updates
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Select the data area you want to synchronize.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {syncOperations.map((operation) => {
+            const Icon = operation.icon;
+            return (
+              <Link
+                key={operation.href}
+                href={operation.href}
+                className="group flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_32px_rgba(15,23,42,0.08)]"
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-lg text-[#0c477d]">
+                  <Icon />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-3 font-semibold text-slate-900">
+                    {operation.name}
+                    <FiArrowRight className="shrink-0 text-[#0c477d] transition group-hover:translate-x-1" />
+                  </span>
+                  <span className="mt-1.5 block text-sm leading-6 text-slate-500">
+                    {operation.description}
+                  </span>
                 </span>
               </Link>
             );
