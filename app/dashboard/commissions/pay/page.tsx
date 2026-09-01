@@ -201,7 +201,6 @@ export default function PayCommissionsPage() {
         endpoint={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commisions/pay/`}
         hidePagination
         title="Eligible commissions"
-        exportVariant="healthcare-commissions"
         displayCheckBoxes
         showDateFilter
         exactDateKey="sap_payment_receiptdate"
