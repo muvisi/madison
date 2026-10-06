@@ -60,7 +60,7 @@ export interface FollowUpReport {
   interimBill: number
   followUpDate: string
   followUpType: string
-
+  followUpCount: number
 }
 
 export default function DataTable<T>({
