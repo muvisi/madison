@@ -12,6 +12,40 @@ import TooltipText from "@/src/components/Tooltip";
 import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
 
+const EXCEL_CELL_CHARACTER_LIMIT = 32767;
+const EXCEL_COLUMN_WIDTH_LIMIT = 60;
+
+type ExcelCellValue = string | number | boolean;
+type ChunkedExcelRow = Record<string, ExcelCellValue[]>;
+
+const splitExcelCellValue = (value: unknown): ExcelCellValue[] => {
+  if (value === null || value === undefined) {
+    return [""];
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return [value];
+  }
+
+  const text =
+    typeof value === "string"
+      ? value.trim()
+      : typeof value === "object"
+        ? (JSON.stringify(value) ?? "").trim()
+        : String(value).trim();
+
+  if (text.length <= EXCEL_CELL_CHARACTER_LIMIT) {
+    return [text];
+  }
+
+  const chunks: string[] = [];
+  for (let start = 0; start < text.length; start += EXCEL_CELL_CHARACTER_LIMIT) {
+    chunks.push(text.slice(start, start + EXCEL_CELL_CHARACTER_LIMIT));
+  }
+
+  return chunks;
+};
+
 const filterFields: FilterField[] = [
   {
     key: "memberNumber",
@@ -357,45 +391,74 @@ const handleExport = async () => {
 
     const result = await exportFollowUpStatusReport(params);
 
-    const exportData = result?.items ?? [];
+    const exportData: FollowUpReport[] = result?.items ?? [];
 
     if (exportData.length === 0) {
       toast.error("There are no records to export.");
       return;
     }
 
-    const formattedData = exportData.map((row: any) =>
+    const chunkedData: ChunkedExcelRow[] = exportData.map((row) =>
       Object.fromEntries(
-        columns.map((column) => {
-          let value = row[column.key];
-
-          if (typeof value === "string") {
-            value = value.trim();
-          }
-
-          return [
-            column.label,
-            value === null || value === undefined
-              ? ""
-              : typeof value === "object"
-              ? JSON.stringify(value)
-              : value,
-          ];
-        })
+        columns.map((column) => [
+          column.label,
+          splitExcelCellValue(row[column.key]),
+        ])
       )
     );
 
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const chunkCountByColumn = Object.fromEntries(
+      columns.map((column) => [
+        column.label,
+        Math.max(
+          1,
+          ...chunkedData.map((row) => row[column.label]?.length ?? 1)
+        ),
+      ])
+    ) as Record<string, number>;
+
+    const exportHeaders = columns.flatMap((column) =>
+      Array.from(
+        { length: chunkCountByColumn[column.label] },
+        (_, partIndex) =>
+          partIndex === 0
+            ? column.label
+            : `${column.label} (continued ${partIndex + 1})`
+      )
+    );
+
+    const formattedData = chunkedData.map((row) => {
+      const formattedRow: Record<string, ExcelCellValue> = {};
+
+      columns.forEach((column) => {
+        const chunks = row[column.label] ?? [""];
+        const chunkCount = chunkCountByColumn[column.label];
+
+        for (let partIndex = 0; partIndex < chunkCount; partIndex += 1) {
+          const header =
+            partIndex === 0
+              ? column.label
+              : `${column.label} (continued ${partIndex + 1})`;
+          formattedRow[header] = chunks[partIndex] ?? "";
+        }
+      });
+
+      return formattedRow;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData, {
+      header: exportHeaders,
+    });
 
     // Auto-size columns
-    worksheet["!cols"] = columns.map((column) => ({
-      wch:
+    worksheet["!cols"] = exportHeaders.map((header) => ({
+      wch: Math.min(
+        EXCEL_COLUMN_WIDTH_LIMIT,
         Math.max(
-          column.label.length,
-          ...formattedData.map((row: any) =>
-            String(row[column.label as keyof typeof row] ?? "").length
-          )
-        ) + 2,
+          header.length,
+          ...formattedData.map((row) => String(row[header] ?? "").length)
+        ) + 2
+      ),
     }));
 
     const workbook = XLSX.utils.book_new();
