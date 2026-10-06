@@ -179,6 +179,10 @@ const columns: Column<FollowUpReport>[] = [
      key: "followUpType",
      label: "Follow-up Type",
     },
+  {
+    key: "followUpCount",
+    label: "Follow-up Count",
+  },
 
  
  
